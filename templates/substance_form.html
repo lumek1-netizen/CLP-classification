@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+
+    {% if substance and substance.id %}
+    <h1>📝 Editovat Látku: **{{ substance.name }}**</h1>
+    {% else %}
+    <h1>➕ Přidat Novou Látku</h1>
+    {% endif %}
+
+    <hr>
+
+    <form method="POST"
+        action="{{ url_for('substances.edit', substance_id=substance.id) if substance and substance.id else url_for('substances.create') }}">
+        {{ form.hidden_tag() }}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="form-card mb-4">
+            <h3>🏷️ Základní Identifikace</h3>
+
+            <div class="group-grid">
+                <div class="form-group">
+                    <label for="name">Název Látky <span class="text-danger">*</span></label>
+                    {{ form.name(id="name", placeholder="Např. Ethanol", required=True) }}
+                    {% for error in form.name.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="cas_number">CAS Číslo</label>
+                    {{ form.cas_number(id="cas_number", placeholder="Např. 64-17-5") }}
+                    {% for error in form.cas_number.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="ghs_codes">GHS Kódy (Piktogramy)</label>
+                {{ form.ghs_codes(id="ghs_codes", placeholder="Např. GHS02, GHS07 (oddělte čárkou)") }}
+                {% for error in form.ghs_codes.errors %}
+                <small class="text-danger">{{ error }}</small>
+                {% endfor %}
+            </div>
+            <small class="hint mt-2">Zadejte GHS kódy (piktogramy) oddělené čárkou, např. GHS02, GHS07.</small>
+        </div>
+
+
+        <div class="form-card mb-4">
+            <h3>⚕️ H-Věty (Zdraví Nebezpečí)</h3>
+            <div class="checkbox-group">
+                {% for code, description in health_h_phrases.items() %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="health_h_phrases" value="{{ code }}"
+                        id="health_{{ code }}" {% if code in selected_health_h_phrases %}checked{% endif %}>
+                    <label class="form-check-label" for="health_{{ code }}">
+                        <strong>{{ code }}</strong>: {{ description }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="form-card mb-4">
+            <h3>🌳 H-Věty (Životní Prostředí)</h3>
+            <div class="checkbox-group">
+                {% for code, description in env_h_phrases.items() %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="env_h_phrases" value="{{ code }}"
+                        id="env_{{ code }}" {% if code in selected_env_h_phrases %}checked{% endif %}>
+                    <label class="form-check-label" for="env_{{ code }}">
+                        <strong>{{ code }}</strong>: {{ description }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="form-card mb-4">
+            <h3>🧪 Akutní Toxicita (ATE Hodnoty - mg/kg nebo mg/l)</h3>
+            <div class="group-grid">
+                <div class="form-group">
+                    <label for="ate_oral">ATE Orální (mg/kg)</label>
+                    {{ form.ate_oral(id="ate_oral", step="0.01", min="0", placeholder="Např. 300") }}
+                    {% for error in form.ate_oral.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="ate_dermal">ATE Dermální (mg/kg)</label>
+                    {{ form.ate_dermal(id="ate_dermal", step="0.01", min="0", placeholder="Např. 1100") }}
+                    {% for error in form.ate_dermal.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="ate_inhalation_vapours">ATE Inhalační - Páry (mg/l)</label>
+                    {{ form.ate_inhalation_vapours(id="ate_inhalation_vapours", step="0.01", min="0", placeholder="Např.
+                    15.0") }}
+                    {% for error in form.ate_inhalation_vapours.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="ate_inhalation_dusts_mists">ATE Inhalační - Prach/Mlha (mg/l)</label>
+                    {{ form.ate_inhalation_dusts_mists(id="ate_inhalation_dusts_mists", step="0.01", min="0",
+                    placeholder="Např. 0.8") }}
+                    {% for error in form.ate_inhalation_dusts_mists.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="ate_inhalation_gases">ATE Inhalační - Plyny (ppm)</label>
+                    {{ form.ate_inhalation_gases(id="ate_inhalation_gases", step="1", min="0", placeholder="Např. 4500")
+                    }}
+                    {% for error in form.ate_inhalation_gases.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+            <small class="hint mt-2">Používejte pouze čisté číselné hodnoty. Desetinná místa oddělujte tečkou. Nechte
+                prázdné, pokud není relevantní.</small>
+        </div>
+
+
+        <div class="form-card mb-4">
+            <h3> Faktor (M-Factor)</h3>
+            <div class="group-grid">
+                <div class="form-group">
+                    <label for="m_factor_acute">M-Faktor Akutní (Acute 1)</label>
+                    {{ form.m_factor_acute(id="m_factor_acute", step="1", min="1", placeholder="Např. 10") }}
+                    {% for error in form.m_factor_acute.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="m_factor_chronic">M-Faktor Chronický (Chronic 1)</label>
+                    {{ form.m_factor_chronic(id="m_factor_chronic", step="1", min="1", placeholder="Např. 10") }}
+                    {% for error in form.m_factor_chronic.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+            <small class="hint mt-2">Zadejte celočíselnou hodnotu (např. 1, 10, 100). Standardní hodnota je 1.</small>
+        </div>
+
+
+
+        <div class="form-card mb-4">
+            <h3>🆕 Rozšířené Požadavky 2026 (ED, PBT, Laktace)</h3>
+            <div class="group-grid">
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.is_lact(id="is_lact") }} {{ form.is_lact.label.text }}
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.has_ozone(id="has_ozone") }} {{ form.has_ozone.label.text }}
+                    </label>
+                </div>
+            </div>
+
+            <div class="group-grid mt-3">
+                <div class="form-group">
+                    <label for="ed_hh_cat">{{ form.ed_hh_cat.label.text }}</label>
+                    {{ form.ed_hh_cat(id="ed_hh_cat", class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label for="ed_env_cat">{{ form.ed_env_cat.label.text }}</label>
+                    {{ form.ed_env_cat(id="ed_env_cat", class="form-control") }}
+                </div>
+            </div>
+
+            <div class="group-grid mt-3">
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.is_pbt(id="is_pbt") }} {{ form.is_pbt.label.text }}
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.is_vpvb(id="is_vpvb") }} {{ form.is_vpvb.label.text }}
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.is_pmt(id="is_pmt") }} {{ form.is_pmt.label.text }}
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
+                        {{ form.is_vpvm(id="is_vpvm") }} {{ form.is_vpvm.label.text }}
+                    </label>
+                </div>
+            </div>
+            <small class="hint mt-2">Dle nařízení 2023/707 a legislativy platné k roku 2026.</small>
+        </div>
+
+        <div class="form-card mb-4">
+            <h3>📑 Specifické Koncentrační Limity (SCLs)</h3>
+            <div class="form-group" id="scl_form_group">
+                <label for="scl_data">SCLs (např. C ≥ 5% nebo 5% ≤ C < 25%)</label>
+                        <div id="scl_container" class="mt-2">
+                        </div>
+                        <button type="button" id="add_scl_button" class="button button-secondary button-small mt-2">➕
+                            Přidat SCL</button>
+
+                        <input type="hidden" id="scl_data" name="scl_data"
+                            value="{{ substance.scl_limits if substance else '' }}">
+
+                        <small class="hint mt-2">Klikněte na "Přidat SCL" pro definování specifických limitů (podporuje
+                            operátory >=, >, <=, < i rozmezí).</small>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('substances.index') }}" class="button">Zpět na seznam látek</a>
+
+            <button type="submit" class="button button-primary">
+                {% if substance and substance.id %}
+                💾 Uložit Změny Látky
+                {% else %}
+                ✅ Vytvořit Látku
+                {% endif %}
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // Získání dat z Jinja kontextu
+    const SCL_HAZARD_CATEGORIES = {{ scl_hazard_categories | tojson | safe }};
+
+    const sclContainer = document.getElementById('scl_container');
+    const addSclButton = document.getElementById('add_scl_button');
+    const sclDataInput = document.getElementById('scl_data'); // Skryté pole pro finální string
+
+    // 1. Funkce pro serializaci SCL formulářů na finální string
+    function serializeScls() {
+        const rows = sclContainer.querySelectorAll('.scl-row');
+        const scls = [];
+
+        rows.forEach(row => {
+            const hazard = row.querySelector('.scl-hazard').value;
+            if (!hazard) return;
+
+            const conds = [];
+
+            // První podmínka
+            const op1 = row.querySelector('.scl-op1').value;
+            const val1 = row.querySelector('.scl-val1').value;
+            if (op1 && val1 && !isNaN(parseFloat(val1))) {
+                conds.push(`${op1} ${parseFloat(val1)}`);
+            }
+
+            // Druhá podmínka (pokud je aktivní rozmezí)
+            const rangeCheck = row.querySelector('.scl-range-check');
+            if (rangeCheck && rangeCheck.checked) {
+                const op2 = row.querySelector('.scl-op2').value;
+                const val2 = row.querySelector('.scl-val2').value;
+                if (op2 && val2 && !isNaN(parseFloat(val2))) {
+                    conds.push(`${op2} ${parseFloat(val2)}`);
+                }
+            }
+
+            if (conds.length > 0) {
+                // Sestavíme formát: Hazard: op1 val1; op2 val2
+                scls.push(`${hazard}: ${conds.join('; ')}`);
+            }
+        });
+
+        // Uložení do skrytého pole pro odeslání do Flasku
+        sclDataInput.value = scls.join(', ');
+    }
+
+    // Pomocná funkce pro vytvoření selectu operátoru
+    function createOperatorSelect(className, defaultValue = '>=') {
+        const select = document.createElement('select');
+        select.className = `${className} form-control`;
+        select.style.minWidth = '60px';
+        const ops = ['>=', '>', '<=', '<'];
+        ops.forEach(op => {
+            const opt = document.createElement('option');
+            opt.value = op;
+            opt.textContent = op;
+            if (op === defaultValue) opt.selected = true;
+            select.appendChild(opt);
+        });
+        return select;
+    }
+
+    // 2. Funkce pro vytvoření jednoho řádku SCL
+    function createSclRow(defaultHazard = '', cond1 = { op: '>=', val: '' }, cond2 = null) {
+        const div = document.createElement('div');
+        div.className = 'scl-row card p-3 mb-3';
+        div.style.border = '1px solid #ddd';
+        div.style.backgroundColor = '#f9f9f9';
+
+        const topRow = document.createElement('div');
+        topRow.className = 'd-flex justify-content-between align-items-center mb-2';
+
+        const hazardHeading = document.createElement('strong');
+        hazardHeading.textContent = 'Kategorie nebezpečnosti:';
+        topRow.appendChild(hazardHeading);
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'button button-delete button-small';
+        removeButton.textContent = '✖ Odstranit';
+        removeButton.addEventListener('click', () => {
+            div.remove();
+            serializeScls();
+        });
+        topRow.appendChild(removeButton);
+        div.appendChild(topRow);
+
+        // Select pro hazard
+        const selectHazard = document.createElement('select');
+        selectHazard.className = 'scl-hazard form-control mb-3';
+
+        let initialOption = document.createElement('option');
+        initialOption.value = '';
+        initialOption.textContent = 'Vyberte nebezpečí...';
+        selectHazard.appendChild(initialOption);
+
+        SCL_HAZARD_CATEGORIES.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            if (category === defaultHazard) option.selected = true;
+            selectHazard.appendChild(option);
+        });
+        div.appendChild(selectHazard);
+
+        // Podmínky
+        const condsContainer = document.createElement('div');
+        condsContainer.className = 'conds-container';
+
+        // Řádek 1
+        const row1 = document.createElement('div');
+        row1.className = 'd-flex align-items-center mb-2';
+        row1.style.gap = '10px';
+
+        row1.appendChild(document.createTextNode('Koncentrace (C) '));
+        const op1Select = createOperatorSelect('scl-op1', cond1.op);
+        row1.appendChild(op1Select);
+
+        const val1Input = document.createElement('input');
+        val1Input.type = 'number';
+        val1Input.step = '0.01';
+        val1Input.className = 'scl-val1 form-control';
+        val1Input.placeholder = 'Limit %';
+        val1Input.value = cond1.val;
+        row1.appendChild(val1Input);
+        row1.appendChild(document.createTextNode(' %'));
+
+        condsContainer.appendChild(row1);
+
+        // Range checkbox
+        const rangeDiv = document.createElement('div');
+        rangeDiv.className = 'mb-2';
+        const rangeLabel = document.createElement('label');
+        rangeLabel.style.fontWeight = 'normal';
+        rangeLabel.style.cursor = 'pointer';
+
+        const rangeCheck = document.createElement('input');
+        rangeCheck.type = 'checkbox';
+        rangeCheck.className = 'scl-range-check mr-2';
+        rangeCheck.checked = !!cond2;
+        rangeLabel.appendChild(rangeCheck);
+        rangeLabel.appendChild(document.createTextNode(' Přidat druhou podmínku (rozmezí)'));
+        rangeDiv.appendChild(rangeLabel);
+        condsContainer.appendChild(rangeDiv);
+
+        // Řádek 2 (volitelný)
+        const row2 = document.createElement('div');
+        row2.className = 'scl-row2 d-flex align-items-center mb-2';
+        row2.style.gap = '10px';
+        row2.style.display = cond2 ? 'flex' : 'none';
+
+        row2.appendChild(document.createTextNode('A zároveň (C) '));
+        const op2Select = createOperatorSelect('scl-op2', cond2 ? cond2.op : '<');
+        row2.appendChild(op2Select);
+
+        const val2Input = document.createElement('input');
+        val2Input.type = 'number';
+        val2Input.step = '0.01';
+        val2Input.className = 'scl-val2 form-control';
+        val2Input.placeholder = 'Limit %';
+        if (cond2) val2Input.value = cond2.val;
+        row2.appendChild(val2Input);
+        row2.appendChild(document.createTextNode(' %'));
+
+        condsContainer.appendChild(row2);
+        div.appendChild(condsContainer);
+
+        // Event listener pro range checkbox
+        rangeCheck.addEventListener('change', () => {
+            row2.style.display = rangeCheck.checked ? 'flex' : 'none';
+            serializeScls();
+        });
+
+        // Event listeners pro aktualizaci
+        [selectHazard, op1Select, val1Input, op2Select, val2Input].forEach(el => {
+            el.addEventListener('change', serializeScls);
+            el.addEventListener('input', serializeScls);
+        });
+
+        sclContainer.appendChild(div);
+    }
+
+    // 3. Načtení existujících SCLs při načtení stránky (pro Editaci)
+    function loadExistingScls() {
+        if (sclDataInput.value) {
+            const sclsArray = sclDataInput.value.split(',').map(s => s.trim()).filter(s => s);
+
+            sclsArray.forEach(sclString => {
+                // Nový formát: "Hazard: op1 val1; op2 val2"
+                if (sclString.includes(':')) {
+                    const [hazard, condsStr] = sclString.split(':').map(s => s.trim());
+                    const condsParts = condsStr.split(';').map(s => s.trim());
+
+                    let c1 = { op: '>=', val: '' };
+                    let c2 = null;
+
+                    condsParts.forEach((cp, idx) => {
+                        const match = cp.match(/^([>=<]+)\s*([\d\.]+)$/);
+                        if (match) {
+                            if (idx === 0) {
+                                c1 = { op: match[1], val: match[2] };
+                            } else if (idx === 1) {
+                                c2 = { op: match[1], val: match[2] };
+                            }
+                        }
+                    });
+                    createSclRow(hazard, c1, c2);
+                } else if (sclString.includes('=')) {
+                    // Starý formát: "Hazard=Limit"
+                    const [hazard, limit] = sclString.split('=').map(s => s.trim());
+                    createSclRow(hazard, { op: '>=', val: limit });
+                }
+            });
+        }
+        serializeScls();
+    }
+
+    // 4. Inicializace
+    loadExistingScls();
+
+    // Listener pro tlačítko "Přidat SCL"
+    addSclButton.addEventListener('click', () => {
+        createSclRow();
+    });
+
+</script>
+
+{% endblock %}

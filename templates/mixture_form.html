@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if mixture %}Editovat Směs: {{ mixture.name }}{% else %}Vytvořit Novou Směs{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+
+    <h1>{% if mixture %}📝 Editovat Směs: **{{ mixture.name }}**{% else %}➕ Vytvořit Novou Směs{% endif %}</h1>
+
+    <hr>
+
+    <form method="POST"
+        action="{% if mixture %}{{ url_for('mixtures.edit', mixture_id=mixture.id) }}{% else %}{{ url_for('mixtures.create') }}{% endif %}">
+        {{ form.hidden_tag() }}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="form-card mb-4">
+            <h3>🏷️ Základní Informace o Směsi</h3>
+
+            <div class="form-group">
+                <label for="name">Název Směsi <span class="text-danger">*</span></label>
+                {{ form.name(id="name", placeholder="Např. Čistící prostředek XYZ", required=True) }}
+                {% for error in form.name.errors %}
+                <small class="text-danger">{{ error }}</small>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-card mb-4">
+            <h3>🧪 Složení Směsi (Komponenty)</h3>
+
+            <div id="components-container">
+                <div class="group-grid text-muted mb-1" style="grid-template-columns: 2fr 1fr 60px; font-weight: bold;">
+                    <div>Látka</div>
+                    <div>Koncentrace (%)</div>
+                    <div></div>
+                </div>
+            </div>
+
+            <button type="button" id="add-component-button" class="button button-secondary" style="margin-top: 15px;">
+                ➕ Přidat Složku
+            </button>
+            <p class="text-muted mt-2">Ujistěte se, že celková koncentrace nepřesahuje 100 %.</p>
+        </div>
+
+        <div class="button-group d-flex justify-content-between">
+            <a href="{{ url_for('mixtures.index') }}" class="button button-link">Zpět</a>
+            <button type="submit" class="button button-primary">
+                {{ 'Uložit a Překlasifikovat Směs' if mixture else 'Vytvořit a Klasifikovat Směs' }}
+            </button>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    // Předáme data z Flask do JavaScriptu
+    // Zde už nebudou objekty SQLAlchemy, ale pouze čisté slovníky, a proto to funguje.
+    const ALL_SUBSTANCES = {{ substances | tojson }};
+    const EXISTING_COMPONENTS = {{ existing_components | tojson }};
+
+    const componentsContainer = document.getElementById('components-container');
+    const addComponentButton = document.getElementById('add-component-button');
+
+    let componentCount = 0;
+
+    /**
+     * Vytvoří rozbalovací seznam (dropdown) se všemi látkami.
+     */
+    function createSubstanceSelect(selectedValue = null) {
+        const select = document.createElement('select');
+        select.name = 'substance_id';
+        select.required = true;
+        select.classList.add('form-control', 'substance-select');
+
+        let defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '--- Vyberte látku ---';
+        defaultOption.disabled = true;
+        select.appendChild(defaultOption);
+
+        ALL_SUBSTANCES.forEach(substance => {
+            const option = document.createElement('option');
+            option.value = substance.id;
+            option.textContent = `${substance.name} (ID: ${substance.id})`;
+            if (selectedValue !== null && String(substance.id) === String(selectedValue)) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        if (selectedValue === null) {
+            defaultOption.selected = true;
+        }
+
+        return select;
+    }
+
+    /**
+     * Vytvoří kompletní řádek pro komponentu (látka + koncentrace + smazání).
+     */
+    function addComponentRow(substanceId = null, concentration = null) {
+        componentCount++;
+
+        const rowDiv = document.createElement('div');
+        rowDiv.classList.add('component-row', 'group-grid', 'mb-2');
+        // Styl pro 3 sloupce: Látka (2 díly), Koncentrace (1 díl), Tlačítko (pevná šířka)
+        rowDiv.style.cssText = 'grid-template-columns: 2fr 1fr 60px; align-items: center;';
+        rowDiv.dataset.id = componentCount;
+
+        // 1. Sloupec: Látka (Dropdown)
+        const selectGroup = document.createElement('div');
+        selectGroup.classList.add('form-group-inline'); // Používáme třídu inline pro zarovnání uvnitř buňky
+        const select = createSubstanceSelect(substanceId);
+        selectGroup.appendChild(select);
+
+        // 2. Sloupec: Koncentrace (%)
+        const concentrationGroup = document.createElement('div');
+        concentrationGroup.classList.add('form-group-inline');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.name = 'concentration';
+        input.required = true;
+        input.min = '0.001';
+        input.step = '0.001';
+        input.placeholder = 'Konc. %';
+        input.classList.add('form-control');
+
+        if (concentration !== null) {
+            // Zobrazení koncentrace s přesností na 3 desetinná místa
+            input.value = parseFloat(concentration).toFixed(3);
+        }
+        concentrationGroup.appendChild(input);
+
+        // 3. Sloupec: Tlačítko pro odstranění
+        const deleteGroup = document.createElement('div');
+        deleteGroup.classList.add('form-group-inline', 'd-flex', 'align-items-center', 'justify-content-center');
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.innerHTML = '✖️';
+        deleteButton.title = 'Odstranit složku';
+        deleteButton.classList.add('button', 'button-danger', 'button-icon-small');
+
+        deleteButton.addEventListener('click', () => {
+            // Směs musí obsahovat alespoň jednu komponentu
+            if (componentsContainer.querySelectorAll('.component-row').length > 1) {
+                rowDiv.remove();
+            } else {
+                alert('Směs musí obsahovat alespoň jednu složku.');
+            }
+        });
+        deleteGroup.appendChild(deleteButton);
+
+        rowDiv.appendChild(selectGroup);
+        rowDiv.appendChild(concentrationGroup);
+        rowDiv.appendChild(deleteGroup);
+        componentsContainer.appendChild(rowDiv);
+    }
+
+    /**
+     * Načte existující komponenty při editaci.
+     */
+    function loadExistingComponents() {
+        if (EXISTING_COMPONENTS && EXISTING_COMPONENTS.length > 0) {
+            EXISTING_COMPONENTS.forEach(comp => {
+                addComponentRow(comp.substance_id, comp.concentration);
+            });
+        }
+
+        // Přidáme jeden prázdný řádek pro novou směs nebo pro snadné přidání nové při editaci
+        if (!EXISTING_COMPONENTS || EXISTING_COMPONENTS.length === 0) {
+            addComponentRow();
+        }
+    }
+
+    // Inicializace
+    document.addEventListener('DOMContentLoaded', () => {
+        loadExistingComponents();
+    });
+
+    // Listener pro tlačítko "Přidat Složku"
+    addComponentButton.addEventListener('click', () => {
+        addComponentRow();
+    });
+
+</script>
+{% endblock %}

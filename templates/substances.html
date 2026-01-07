@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_pagination %}
+
+{% block title %}Seznam Látek{% endblock %}
+
+{% block content %}
+
+{% set active_tab = 'substances' %}
+
+<h2>Seznam Evidovaných Látek</h2>
+
+<div class="search-container">
+    <form action="{{ url_for('substances.index') }}" method="GET" class="search-form">
+        <input type="text" name="q" value="{{ q or '' }}" placeholder="Hledat podle názvu nebo CAS..."
+            class="search-input">
+        <button type="submit" class="button button-primary button-small">Hledat</button>
+        {% if q %}
+        <a href="{{ url_for('substances.index') }}" class="button button-small"
+            style="background-color: var(--secondary-color); color: white; text-decoration: none;">Zrušit</a>
+        {% endif %}
+    </form>
+</div>
+
+<table class="data-list">
+    <thead>
+        <tr>
+            <th>Název Látky</th>
+            <th>CAS Číslo</th>
+            <th>GHS Kódy</th>
+            <th class="text-center">Akce</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for substance in substances %}
+        <tr id="substance-row-{{ substance.id }}">
+            <td>{{ substance.name }}</td>
+            <td>{{ substance.cas_number if substance.cas_number else 'N/A' }}</td>
+            <td>
+                {% if substance.ghs_codes %}
+                {% for code in substance.ghs_codes.split(', ') %}
+                <span class="ghs-tag">{{ code }}</span>
+                {% endfor %}
+                {% else %}
+                N/A (Neklasifikováno)
+                {% endif %}
+            </td>
+
+            <td class="text-center">
+                <a href="{{ url_for('substances.edit', substance_id=substance.id) }}" class="button button-small"
+                    style="text-decoration: none; background-color: #17a2b8; color: white; margin-right: 5px;">
+                    Upravit
+                </a>
+
+                <form action="{{ url_for('substances.delete', substance_id=substance.id) }}" method="POST"
+                    style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="button button-delete button-small" title="Smazat látku"
+                        onclick="return confirm('Opravdu chcete látku **{{ substance.name }}** smazat? Tato akce je nevratná.')">
+                        Smazat
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">Žádné látky zatím nebyly evidovány.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="button-group" style="text-align: right; margin-top: 20px;">
+    {{ render_pagination(pagination, 'substances.index') }}
+    <a href="{{ url_for('substances.create') }}" class="button button-primary" style="text-decoration: none;">
+        Vytvořit novou látku
+    </a>
+</div>
+
+{% endblock %}

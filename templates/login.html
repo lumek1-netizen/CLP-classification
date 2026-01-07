@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Přihlášení{% endblock %}
+
+{% block content %}
+<div class="auth-container"
+    style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="text-align: center; margin-bottom: 25px; color: #333;">Vítejte v CLP Kalkulátoru</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}"
+        style="padding: 10px; margin-bottom: 20px; border-radius: 4px; background-color: {% if category == 'danger' %}#f8d7da{% else %}#d1ecf1{% endif %}; color: {% if category == 'danger' %}#721c24{% else %}#0c5460{% endif %}; border: 1px solid {% if category == 'danger' %}#f5c6cb{% else %}#bee5eb{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="username" style="display: block; margin-bottom: 5px; font-weight: 500;">Uživatelské
+                jméno</label>
+            {{ form.username(class="form-control", placeholder="admin", style="width: 100%; padding: 10px; border: 1px
+            solid #ccc; border-radius: 4px; box-sizing: border-box;") }}
+            {% for error in form.username.errors %}
+            <span style="color: red; font-size: 0.8em;">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="password" style="display: block; margin-bottom: 5px; font-weight: 500;">Heslo</label>
+            {{ form.password(class="form-control", placeholder="••••••••", style="width: 100%; padding: 10px; border:
+            1px solid #ccc; border-radius: 4px; box-sizing: border-box;") }}
+            {% for error in form.password.errors %}
+            <span style="color: red; font-size: 0.8em;">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                {{ form.remember(style="margin-right: 10px;") }}
+                <span style="font-size: 0.9em; color: #666;">Zapamatovat si mě</span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary"
+            style="width: 100%; padding: 12px; background-color: #007bff; border: none; border-radius: 4px; color: #fff; font-weight: 600; cursor: pointer; transition: background-color 0.2s;">
+            Přihlásit se
+        </button>
+    </form>
+</div>
+{% endblock %}
