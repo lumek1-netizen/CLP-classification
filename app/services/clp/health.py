@@ -70,10 +70,12 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
     """Vypočítá součty koncentrací pro jednotlivé kategorie hazardů."""
     hazard_totals = {}
 
-    def add_contribution(category, concentration, sub_name, note=""):
+    def add_contribution(category, concentration, sub_name, note="", forced_by_scl=False):
         if category not in hazard_totals:
-            hazard_totals[category] = {"total": 0.0, "contributors": []}
+            hazard_totals[category] = {"total": 0.0, "contributors": [], "forced_by_scl": False}
         hazard_totals[category]["total"] += concentration
+        if forced_by_scl:
+            hazard_totals[category]["forced_by_scl"] = True
         hazard_totals[category]["contributors"].append(
             f"{sub_name} ({concentration}%{note})"
         )
@@ -100,7 +102,7 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
                 if target_cat.startswith("Skin Corr. 1"):
                     target_cat = "Skin Corr. 1"
                 cond_str = ", ".join([f"{c['op']}{c['value']}" for c in conditions])
-                add_contribution(target_cat, conc, sub_name, f" [SCL {cond_str}]")
+                add_contribution(target_cat, conc, sub_name, f" [SCL {cond_str}]", forced_by_scl=True)
 
         # 2. GCL / Standardní limity z H-vět
         if substance.health_h_phrases:
@@ -183,25 +185,32 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
     sum_skin_1 = hazard_totals.get("Skin Corr. 1", {}).get("total", 0.0)
     sum_skin_2 = hazard_totals.get("Skin Irrit. 2", {}).get("total", 0.0)
 
-    if sum_skin_1 >= 5.0:
+    if sum_skin_1 >= 5.0 or hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
         health_hazards.add("H314")
         health_ghs.add("GHS05")
+        detail = f"Součet = {sum_skin_1}% >= 5%"
+        if hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
+            detail = f"Vynuceno přes SCL (Součet = {sum_skin_1}%)"
+            
         log_entries.append(
             {
                 "step": "Skin Corr. 1",
-                "detail": f"Součet = {sum_skin_1}% >= 5%",
+                "detail": detail,
                 "result": "H314",
             }
         )
     else:
         val_skin_2 = (10 * sum_skin_1) + sum_skin_2
-        if val_skin_2 >= 10.0:
+        if val_skin_2 >= 10.0 or hazard_totals.get("Skin Irrit. 2", {}).get("forced_by_scl"):
             health_hazards.add("H315")
             health_ghs.add("GHS07")
+            detail = f"Vážený součet = {val_skin_2}% >= 10%"
+            if hazard_totals.get("Skin Irrit. 2", {}).get("forced_by_scl"):
+                detail = f"Vynuceno přes SCL (Vážený součet = {val_skin_2}%)"
             log_entries.append(
                 {
                     "step": "Skin Irrit. 2",
-                    "detail": f"Vážený součet = {val_skin_2}% >= 10%",
+                    "detail": detail,
                     "result": "H315",
                 }
             )
@@ -210,25 +219,31 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
     sum_eye_1 = hazard_totals.get("Eye Dam. 1", {}).get("total", 0.0) + sum_skin_1
     sum_eye_2 = hazard_totals.get("Eye Irrit. 2", {}).get("total", 0.0)
 
-    if sum_eye_1 >= 3.0:
+    if sum_eye_1 >= 3.0 or hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
         health_hazards.add("H318")
         health_ghs.add("GHS05")
+        detail = f"Součet = {sum_eye_1}% >= 3%"
+        if hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
+            detail = f"Vynuceno přes SCL (Součet = {sum_eye_1}%)"
         log_entries.append(
             {
                 "step": "Eye Dam. 1",
-                "detail": f"Součet = {sum_eye_1}% >= 3%",
+                "detail": detail,
                 "result": "H318",
             }
         )
     else:
         val_eye_2 = (10 * sum_eye_1) + sum_eye_2
-        if val_eye_2 >= 10.0:
+        if val_eye_2 >= 10.0 or hazard_totals.get("Eye Irrit. 2", {}).get("forced_by_scl"):
             health_hazards.add("H319")
             health_ghs.add("GHS07")
+            detail = f"Vážený součet = {val_eye_2}% >= 10%"
+            if hazard_totals.get("Eye Irrit. 2", {}).get("forced_by_scl"):
+                detail = f"Vynuceno přes SCL (Vážený součet = {val_eye_2}%)"
             log_entries.append(
                 {
                     "step": "Eye Irrit. 2",
-                    "detail": f"Vážený součet = {val_eye_2}% >= 10%",
+                    "detail": detail,
                     "result": "H319",
                 }
             )

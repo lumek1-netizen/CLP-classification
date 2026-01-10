@@ -142,7 +142,7 @@ def edit(substance_id):
             substance.ate_inhalation_gases = form.ate_inhalation_gases.data
             substance.m_factor_acute = form.m_factor_acute.data or 1
             substance.m_factor_chronic = form.m_factor_chronic.data or 1
-            substance.scl_limits = request.form.get("scl_data", "")
+            substance.scl_limits = form.scl_limits.data
 
             substance.is_lact = form.is_lact.data
             substance.ed_hh_cat = form.ed_hh_cat.data if form.ed_hh_cat.data > 0 else None

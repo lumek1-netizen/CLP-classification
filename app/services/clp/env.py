@@ -1,5 +1,6 @@
-from typing import Dict, List, Tuple, Set
+from typing import Dict, List, Tuple, Set, Any
 from app.models import Mixture
+from .scl import parse_scls, evaluate_scl_condition
 
 
 def classify_environmental_hazards(
@@ -34,8 +35,39 @@ def classify_environmental_hazards(
 
         if substance.env_h_phrases:
             env_h_codes = [h.strip() for h in substance.env_h_phrases.split(",")]
+            
+            # SCL vyhodnocení pro životní prostředí
+            scl_covered_groups = set()
+            if substance.scl_limits:
+                parsed_scls_data = parse_scls(substance.scl_limits)
+                for scl_cat, conditions in parsed_scls_data.items():
+                    if evaluate_scl_condition(concentration, conditions):
+                        if scl_cat == "Aquatic Acute 1":
+                            m_factor = substance.m_factor_acute or 1
+                            sum_acute_1 += concentration * m_factor
+                            contributors_acute_1.append(f"{sub_name} ({concentration}% x M{m_factor} [SCL])")
+                            scl_covered_groups.add("Aquatic Acute 1")
+                        elif scl_cat == "Aquatic Chronic 1":
+                            m_factor = substance.m_factor_chronic or 1
+                            sum_chronic_1 += concentration * m_factor
+                            contributors_chronic_1.append(f"{sub_name} ({concentration}% x M{m_factor} [SCL])")
+                            scl_covered_groups.add("Aquatic Chronic 1")
+                        elif scl_cat == "Aquatic Chronic 2":
+                            sum_chronic_2 += concentration
+                            contributors_chronic_2.append(f"{sub_name} ({concentration}% [SCL])")
+                            scl_covered_groups.add("Aquatic Chronic 2")
+                        elif scl_cat == "Aquatic Chronic 3":
+                            sum_chronic_3 += concentration
+                            contributors_chronic_3.append(f"{sub_name} ({concentration}% [SCL])")
+                            scl_covered_groups.add("Aquatic Chronic 3")
+                        elif scl_cat == "Aquatic Chronic 4":
+                            sum_chronic_4 += concentration
+                            contributors_chronic_4.append(f"{sub_name} ({concentration}% [SCL])")
+                            scl_covered_groups.add("Aquatic Chronic 4")
+
+            # GCL vyhodnocení (pouze pokud není pokryto SCL)
             for h_code in env_h_codes:
-                if h_code == "H400":
+                if h_code == "H400" and "Aquatic Acute 1" not in scl_covered_groups:
                     if concentration < 0.1:
                         continue
                     m_factor = substance.m_factor_acute or 1
@@ -43,7 +75,7 @@ def classify_environmental_hazards(
                     contributors_acute_1.append(
                         f"{sub_name} ({concentration}% x M{m_factor})"
                     )
-                elif h_code == "H410":
+                elif h_code == "H410" and "Aquatic Chronic 1" not in scl_covered_groups:
                     if concentration < 0.1:
                         continue
                     m_factor = substance.m_factor_chronic or 1
@@ -51,17 +83,17 @@ def classify_environmental_hazards(
                     contributors_chronic_1.append(
                         f"{sub_name} ({concentration}% x M{m_factor})"
                     )
-                elif h_code == "H411":
+                elif h_code == "H411" and "Aquatic Chronic 2" not in scl_covered_groups:
                     if concentration < 1.0:
                         continue
                     sum_chronic_2 += concentration
                     contributors_chronic_2.append(f"{sub_name} ({concentration}%)")
-                elif h_code == "H412":
+                elif h_code == "H412" and "Aquatic Chronic 3" not in scl_covered_groups:
                     if concentration < 1.0:
                         continue
                     sum_chronic_3 += concentration
                     contributors_chronic_3.append(f"{sub_name} ({concentration}%)")
-                elif h_code == "H413":
+                elif h_code == "H413" and "Aquatic Chronic 4" not in scl_covered_groups:
                     if concentration < 1.0:
                         continue
                     sum_chronic_4 += concentration
