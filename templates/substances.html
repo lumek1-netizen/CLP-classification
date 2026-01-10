@@ -27,7 +27,9 @@
             <th>Název Látky</th>
             <th>CAS Číslo</th>
             <th>GHS Kódy</th>
+            {% if current_user.has_role(['admin', 'editor']) %}
             <th class="text-center">Akce</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -45,6 +47,7 @@
                 {% endif %}
             </td>
 
+            {% if current_user.has_role(['admin', 'editor']) %}
             <td class="text-center">
                 <a href="{{ url_for('substances.edit', substance_id=substance.id) }}" class="button button-small"
                     style="text-decoration: none; background-color: #17a2b8; color: white; margin-right: 5px;">
@@ -60,6 +63,7 @@
                     </button>
                 </form>
             </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
@@ -71,9 +75,11 @@
 
 <div class="button-group" style="text-align: right; margin-top: 20px;">
     {{ render_pagination(pagination, 'substances.index') }}
+    {% if current_user.has_role(['admin', 'editor']) %}
     <a href="{{ url_for('substances.create') }}" class="button button-primary" style="text-decoration: none;">
         Vytvořit novou látku
     </a>
+    {% endif %}
 </div>
 
 {% endblock %}

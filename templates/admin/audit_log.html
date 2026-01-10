@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Historie změn (Audit Log){% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>📜 Historie změn (Audit Log)</h2>
+        <p>Přehled všech operací provedených v systému, včetně identifikace uživatele a času.</p>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="data-list">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Čas</th>
+                        <th style="width: 15%;">Uživatel</th>
+                        <th style="width: 10%;">Akce</th>
+                        <th style="width: 15%;">Entita</th>
+                        <th style="width: 45%;">Změny / Detaily</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                        <td><strong>{{ log.user.username if log.user else 'Systém/Neznámý' }}</strong></td>
+                        <td>
+                            <span
+                                class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% elif log.action == 'DELETE' %}badge-danger{% endif %}">
+                                {{ log.action }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="entity-tag">{{ log.entity_type.upper() }} (ID: {{ log.entity_id }})</span>
+                        </td>
+                        <td style="font-size: 0.85rem;">
+                            {% if log.changes %}
+                            {% if log.action == 'CREATE' %}
+                            <div class="log-details">Vytvořena nová entita</div>
+                            {% elif log.action == 'UPDATE' %}
+                            <div class="log-details">
+                                {% for field, diff in log.changes.items() %}
+                                <div>
+                                    <code>{{ field }}</code>:
+                                    <span class="text-muted">{{ diff.old or 'N/A' }}</span>
+                                    ➡️
+                                    <span class="text-success">{{ diff.new or 'N/A' }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% elif log.action == 'DELETE' %}
+                            <div class="log-details">Entita byla smazána</div>
+                            {% endif %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">Zatím nejsou žádné záznamy v logu.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge-success {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #f59e0b;
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .entity-tag {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 5px;
+        border-radius: 3px;
+    }
+
+    .log-details {
+        max-height: 100px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}

@@ -32,11 +32,7 @@ def test_acute_tox_scl_classification(app):
         # 3. Spuštění klasifikace
         run_clp_classification(mixture)
         
-        # Výsledky jsou uloženy v objektu mixture
-        print(f"DEBUG TEST: Final Hazards: {mixture.final_health_hazards}")
-        
         # H301 by mělo být v hazardech díky SCL
         assert "H301" in mixture.final_health_hazards
         assert "GHS06" in mixture.final_ghs_codes
-        
-        print("Test SCL pro Acute Tox proběhl úspěšně.")
+

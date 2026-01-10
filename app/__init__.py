@@ -22,7 +22,12 @@ def create_app(config_class=Config):
     login_manager.login_message = "Pro přístup k této stránce se prosím přihlaste."
     login_manager.login_message_category = "info"
 
-    from .models.user import User
+    from .services.audit_service import register_audit_listeners
+    register_audit_listeners()
+
+    from .models.user import User, AnonymousUser
+
+    login_manager.anonymous_user = AnonymousUser
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -33,11 +38,13 @@ def create_app(config_class=Config):
     from .routes.mixtures import mixtures_bp
     from .routes.data import data_bp
     from .routes.auth import auth_bp
+    from .routes.admin import admin_bp
 
     app.register_blueprint(substances_bp)
     app.register_blueprint(mixtures_bp)
     app.register_blueprint(data_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
 
     # Error Handlers
     @app.errorhandler(404)

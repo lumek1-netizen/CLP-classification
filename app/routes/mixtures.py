@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
+from app.utils.security import editor_required
 from app.extensions import db
 from app.models import Mixture, Substance, MixtureComponent
 from app.forms.mixture import MixtureForm
@@ -11,6 +12,7 @@ mixtures_bp = Blueprint("mixtures", __name__)
 
 
 @mixtures_bp.route("/")
+@login_required
 def index():
     q = request.args.get("q", "").strip()
     page = request.args.get("page", 1, type=int)
@@ -34,6 +36,7 @@ def index():
 
 @mixtures_bp.route("/mixture/new", methods=["GET", "POST"])
 @login_required
+@editor_required
 def create():
     form = MixtureForm()
     substance_data = [
@@ -94,8 +97,11 @@ def create():
 
 
 @mixtures_bp.route("/mixture/<int:mixture_id>")
+@login_required
 def detail(mixture_id):
     from sqlalchemy.orm import joinedload
+
+    from app.models.audit import AuditLog
 
     mixture = (
         Mixture.query.options(
@@ -104,6 +110,11 @@ def detail(mixture_id):
         .filter_by(id=mixture_id)
         .first_or_404()
     )
+    
+    audit_logs = AuditLog.query.filter_by(
+        entity_type='mixture', 
+        entity_id=mixture_id
+    ).order_by(AuditLog.timestamp.desc()).all()
     comp_details = []
     total = 0.0
     for comp in mixture.components:
@@ -123,11 +134,13 @@ def detail(mixture_id):
         total_concentration=total,
         h_phrases_display=H_PHRASES_DISPLAY,
         active_tab="mixtures",
+        audit_logs=audit_logs,
     )
 
 
 @mixtures_bp.route("/mixture/<int:mixture_id>/edit", methods=["GET", "POST"])
 @login_required
+@editor_required
 def edit(mixture_id):
     mixture = db.get_or_404(Mixture, mixture_id)
     form = MixtureForm(obj=mixture)
@@ -183,6 +196,7 @@ def edit(mixture_id):
 
 @mixtures_bp.route("/mixture/<int:mixture_id>/delete", methods=["POST"])
 @login_required
+@editor_required
 def delete(mixture_id):
     mixture = db.get_or_404(Mixture, mixture_id)
     db.session.delete(mixture)

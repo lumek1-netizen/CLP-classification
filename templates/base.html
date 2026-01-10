@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='theme-toggle.js') }}" defer></script>
 </head>
 
 <body>
@@ -22,7 +23,16 @@
                     class="tab {% if active_tab == 'substances' %}active{% endif %}">Látky</a>
                 <a href="{{ url_for('data.management') }}"
                     class="tab {% if active_tab == 'data_management' %}active{% endif %}">Správa dat</a>
+                {% if current_user.has_role('admin') %}
+                <a href="{{ url_for('admin.users') }}"
+                    class="tab {% if active_tab == 'admin_users' %}active{% endif %}">Uživatelé</a>
+                <a href="{{ url_for('admin.audit_log') }}"
+                    class="tab {% if active_tab == 'admin_audit' %}active{% endif %}">Audit Log</a>
+                {% endif %}
             </nav>
+            <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Přepnout tmavý režim">
+                <span class="theme-icon">🌙</span>
+            </button>
         </div>
     </header>
     <main class="container">

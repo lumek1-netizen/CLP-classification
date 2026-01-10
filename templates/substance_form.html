@@ -87,7 +87,16 @@
             <h3>🧪 Akutní Toxicita (ATE Hodnoty - mg/kg nebo mg/l)</h3>
             <div class="group-grid">
                 <div class="form-group">
-                    <label for="ate_oral">ATE Orální (mg/kg)</label>
+                    <label for="ate_oral" class="label-with-tooltip">
+                        ATE Orální (mg/kg)
+                        <span class="tooltip-wrapper">
+                            <span class="tooltip-icon">?</span>
+                            <span class="tooltip-content">
+                                Akutní toxicita při požití. Hodnota LD50 v mg/kg tělesné hmotnosti. Nižší hodnota =
+                                vyšší toxicita.
+                            </span>
+                        </span>
+                    </label>
                     {{ form.ate_oral(id="ate_oral", step="0.01", min="0", placeholder="Např. 300") }}
                     {% for error in form.ate_oral.errors %}
                     <small class="text-danger">{{ error }}</small>
@@ -95,7 +104,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="ate_dermal">ATE Dermální (mg/kg)</label>
+                    <label for="ate_dermal" class="label-with-tooltip">
+                        ATE Dermální (mg/kg)
+                        <span class="tooltip-wrapper">
+                            <span class="tooltip-icon">?</span>
+                            <span class="tooltip-content">
+                                Akutní toxicita při styku s kůží. Hodnota LD50 v mg/kg tělesné hmotnosti.
+                            </span>
+                        </span>
+                    </label>
                     {{ form.ate_dermal(id="ate_dermal", step="0.01", min="0", placeholder="Např. 1100") }}
                     {% for error in form.ate_dermal.errors %}
                     <small class="text-danger">{{ error }}</small>
@@ -135,10 +152,28 @@
 
 
         <div class="form-card mb-4">
-            <h3> Faktor (M-Factor)</h3>
+            <h3>
+                🧬 M-Faktor (M-Factor)
+                <span class="tooltip-wrapper">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-content">
+                        Multiplikační faktor pro nebezpečnost vodních organismů. Používá se pro látky s vysokou
+                        toxicitou (Aquatic Acute 1 nebo Chronic 1).
+                    </span>
+                </span>
+            </h3>
             <div class="group-grid">
                 <div class="form-group">
-                    <label for="m_factor_acute">M-Faktor Akutní (Acute 1)</label>
+                    <label for="m_factor_acute" class="label-with-tooltip">
+                        M-Faktor Akutní (Acute 1)
+                        <span class="tooltip-wrapper">
+                            <span class="tooltip-icon">?</span>
+                            <span class="tooltip-content">
+                                Pro látky s H400. Hodnoty: 1, 10, 100, 1000. Vyšší hodnota = větší multiplikace
+                                koncentrace při výpočtu.
+                            </span>
+                        </span>
+                    </label>
                     {{ form.m_factor_acute(id="m_factor_acute", step="1", min="1", placeholder="Např. 10") }}
                     {% for error in form.m_factor_acute.errors %}
                     <small class="text-danger">{{ error }}</small>
@@ -146,7 +181,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="m_factor_chronic">M-Faktor Chronický (Chronic 1)</label>
+                    <label for="m_factor_chronic" class="label-with-tooltip">
+                        M-Faktor Chronický (Chronic 1)
+                        <span class="tooltip-wrapper">
+                            <span class="tooltip-icon">?</span>
+                            <span class="tooltip-content">
+                                Pro látky s H410. Hodnoty: 1, 10, 100, 1000. Vyšší hodnota = větší multiplikace
+                                koncentrace při výpočtu.
+                            </span>
+                        </span>
+                    </label>
                     {{ form.m_factor_chronic(id="m_factor_chronic", step="1", min="1", placeholder="Např. 10") }}
                     {% for error in form.m_factor_chronic.errors %}
                     <small class="text-danger">{{ error }}</small>
@@ -210,7 +254,16 @@
         </div>
 
         <div class="form-card mb-4">
-            <h3>📑 Specifické Koncentrační Limity (SCLs)</h3>
+            <h3>
+                📑 Specifické Koncentrační Limity (SCLs)
+                <span class="tooltip-wrapper">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-content">
+                        Specifické limity pro klasifikaci směsi. Používají se místo standardních limitů, pokud je látka
+                        zvláště nebezpečná nebo naopak méně nebezpečná.
+                    </span>
+                </span>
+            </h3>
             <div class="form-group" id="scl_form_group">
                 <label for="scl_data">SCLs (např. C ≥ 5% nebo 5% ≤ C < 25%)</label>
                         <div id="scl_container" class="mt-2">
@@ -239,6 +292,52 @@
         </div>
 
     </form>
+
+    {% if audit_logs %}
+    <div class="form-card mt-5 mb-4">
+        <h3>📜 Historie změn</h3>
+        <div class="table-responsive">
+            <table class="data-list table-sm">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Čas</th>
+                        <th style="width: 20%;">Uživatel</th>
+                        <th style="width: 15%;">Akce</th>
+                        <th style="width: 45%;">Detaily změn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                        <td>{{ log.user.username if log.user else 'Systém' }}</td>
+                        <td>
+                            <span
+                                class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}"
+                                style="padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: white;">
+                                {{ log.action }}
+                            </span>
+                        </td>
+                        <td style="font-size: 0.85rem;">
+                            {% if log.action == 'UPDATE' and log.changes %}
+                            {% for field, diff in log.changes.items() %}
+                            <div class="mb-1">
+                                <code>{{ field }}</code>:
+                                <span class="text-muted">{{ diff.old or 'N/A' }}</span> ➡️
+                                <span class="text-success">{{ diff.new or 'N/A' }}</span>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            {{ log.action.capitalize() }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>

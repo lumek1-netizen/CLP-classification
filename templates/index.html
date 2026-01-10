@@ -33,7 +33,9 @@
                     <th style="width: 15%;">Signální Slovo</th>
                     <th style="width: 10%;">GHS Symboly</th>
                     <th style="width: 20%;">H-věty</th>
+                    {% if current_user.has_role(['admin', 'editor']) %}
                     <th style="width: 10%;" class="text-center">Akce</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -82,6 +84,7 @@
                         {{ all_h_phrases | join(', ') if all_h_phrases else '-' }}
                     </td>
 
+                    {% if current_user.has_role(['admin', 'editor']) %}
                     <td class="text-center">
                         <a href="{{ url_for('mixtures.edit', mixture_id=mixture.id) }}" class="button button-small"
                             style="text-decoration: none; background-color: #17a2b8; color: white; margin-right: 5px;"
@@ -98,6 +101,7 @@
                             </button>
                         </form>
                     </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -106,18 +110,24 @@
 
     {{ render_pagination(pagination, 'mixtures.index') }}
 
+    {% if current_user.has_role(['admin', 'editor']) %}
     <div class="button-group d-flex justify-content-end">
         <a href="{{ url_for('mixtures.create') }}" class="button button-primary" style="text-decoration: none;">
-            Vytvořit
-            novou směs</a>
+            Vytvořit novou směs
+        </a>
     </div>
+    {% endif %}
 
     {% else %}
     <div class="alert alert-info mt-4 p-4 text-center" role="alert">
         <h4>Zatím nebyla vytvořena žádná směs.</h4>
+        {% if current_user.has_role(['admin', 'editor']) %}
         <p>Začněte přidáním nové směsi, aby bylo možné vypočítat její klasifikaci CLP.</p>
         <a href="{{ url_for('mixtures.create') }}" class="button button-primary mt-2" style="text-decoration: none;">➕
             Vytvořit První Směs</a>
+        {% else %}
+        <p>Zatím zde nejsou žádná data k zobrazení.</p>
+        {% endif %}
     </div>
     {% endif %}
 

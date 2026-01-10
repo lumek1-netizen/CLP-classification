@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Správa uživatelů{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>👥 Správa uživatelů</h2>
+        <p>Spravujte uživatele systému a přiřazujte jim příslušné role pro řízení přístupu.</p>
+    </div>
+
+    <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- User Creation Form -->
+        <div class="settings-section mb-5"
+            style="padding: 1.5rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <h3 style="margin-top: 0; color: var(--accent-primary);">➕ Vytvořit nového uživatele</h3>
+            <form action="{{ url_for('admin.users') }}" method="POST" class="auth-form"
+                style="max-width: 600px; margin-top: 1rem;">
+                {{ form.csrf_token }}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        {{ form.username.label }}
+                        {{ form.username(class="search-input", placeholder="Uživatelské jméno") }}
+                        {% for error in form.username.errors %}<small class="text-danger">{{ error }}</small>{% endfor
+                        %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.role_id.label }}
+                        {{ form.role_id(class="search-input") }}
+                        {% for error in form.role_id.errors %}<small class="text-danger">{{ error }}</small>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.password.label }}
+                        {{ form.password(class="search-input", placeholder="Heslo") }}
+                        {% for error in form.password.errors %}<small class="text-danger">{{ error }}</small>{% endfor
+                        %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.confirm_password.label }}
+                        {{ form.confirm_password(class="search-input", placeholder="Potvrzení hesla") }}
+                        {% for error in form.confirm_password.errors %}<small class="text-danger">{{ error }}</small>{%
+                        endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="button button-primary mt-3" style="width: 200px;">
+                    Vytvořit uživatele
+                </button>
+            </form>
+        </div>
+
+        <hr style="margin: 2rem 0; border-color: rgba(255, 255, 255, 0.1);">
+
+        <div class="table-responsive">
+            <table class="data-list">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Uživatelské jméno</th>
+                        <th style="width: 20%;">Aktuální role</th>
+                        <th style="width: 35%;">Změnit roli</th>
+                        <th style="width: 20%;">Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>
+                            {% if user.role %}
+                            <span
+                                class="badge {% if user.role.name == 'admin' %}badge-danger{% elif user.role.name == 'editor' %}badge-warning{% else %}badge-info{% endif %}">
+                                {{ user.role.name.upper() }}
+                            </span>
+                            {% else %}
+                            <span class="badge badge-secondary">BEZ ROLE</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="{{ url_for('admin.update_user_role', user_id=user.id) }}" method="POST"
+                                class="d-flex" style="gap: 5px;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="role_id" class="search-input"
+                                    style="padding: 4px 8px; font-size: 0.9rem; flex-grow: 1;">
+                                    {% for role in roles %}
+                                    <option value="{{ role.id }}" {% if user.role_id==role.id %}selected{% endif %}>
+                                        {{ role.name.capitalize() }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="button button-small"
+                                    style="background-color: var(--primary-color); color: white;">
+                                    Uložit
+                                </button>
+                            </form>
+                        </td>
+                        <td class="text-center">
+                            {% if not user.has_role('admin') and user.id != current_user.id %}
+                            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST"
+                                onsubmit="return confirm('Opravdu chcete smazat uživatele {{ user.username }}? Tato akce je nevratná.')"
+                                style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="button button-small"
+                                    style="background-color: #ef4444; color: white;">
+                                    Odstranit
+                                </button>
+                            </form>
+                            {% else %}
+                            <span style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;">Chráněno 🛡️</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge-danger {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #f59e0b;
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .badge-secondary {
+        background-color: #6b7280;
+        color: white;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

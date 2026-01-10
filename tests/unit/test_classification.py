@@ -35,13 +35,12 @@ def test_run_clp_classification_integration(app):
         assert "H315" in retrieved_mix.final_health_hazards
         assert retrieved_mix.final_ghs_codes == "GHS06"  # GHS06 má prioritu nad GHS07
 
+
         # 4. Ověření logu
         assert retrieved_mix.classification_log is not None
         log_data = retrieved_mix.classification_log
         assert isinstance(log_data, list)
 
-        # Debug tisk pokud selže (při -s)
-        # print(json.dumps(log_data, indent=2, ensure_ascii=False))
 
         at_least_one_ate_step = any("ATE" in item["step"] for item in log_data)
         assert at_least_one_ate_step, "V logu chybí zmínka o ATE"
