@@ -10,9 +10,8 @@ class SubstanceForm(FlaskForm):
         "GHS kódy (např. GHS05, GHS07)", validators=[Optional(), Length(max=100)]
     )
 
-    # H-věty jako textové řetězce (budou zpracovány v route)
-    health_h_phrases_list = HiddenField()  # Skrytý seznam pro vybrané health H-věty
-    env_h_phrases_list = HiddenField()  # Skrytý seznam pro vybrané env H-věty
+    # H-věty jsou zpracovávány přímo z request.form v route
+    scl_limits = HiddenField()  # JSON nebo řetězec se SCL limity
 
     ate_oral = FloatField(
         "ATE orální (mg/kg)", validators=[Optional(), NumberRange(min=0)]
@@ -37,7 +36,6 @@ class SubstanceForm(FlaskForm):
         "M-faktor chronický", validators=[Optional(), NumberRange(min=1)], default=1
     )
 
-    scl_data = HiddenField()  # JSON nebo řetězec se SCL limity
 
     # Rozšíření 2026
     is_lact = BooleanField("Účinky na laktaci (H362)")

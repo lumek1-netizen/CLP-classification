@@ -68,7 +68,7 @@ def create():
                 ate_inhalation_gases=form.ate_inhalation_gases.data,
                 m_factor_acute=form.m_factor_acute.data or 1,
                 m_factor_chronic=form.m_factor_chronic.data or 1,
-                scl_limits=request.form.get("scl_data", ""),
+                scl_limits=form.scl_limits.data,
                 is_lact=form.is_lact.data,
                 ed_hh_cat=form.ed_hh_cat.data if form.ed_hh_cat.data > 0 else None,
                 ed_env_cat=form.ed_env_cat.data if form.ed_env_cat.data > 0 else None,

@@ -271,8 +271,7 @@
                         <button type="button" id="add_scl_button" class="button button-secondary button-small mt-2">➕
                             Přidat SCL</button>
 
-                        <input type="hidden" id="scl_data" name="scl_data"
-                            value="{{ substance.scl_limits if substance else '' }}">
+                        {{ form.scl_limits(id="scl_limits") }}
 
                         <small class="hint mt-2">Klikněte na "Přidat SCL" pro definování specifických limitů (podporuje
                             operátory >=, >, <=, < i rozmezí).</small>
@@ -346,7 +345,7 @@
 
     const sclContainer = document.getElementById('scl_container');
     const addSclButton = document.getElementById('add_scl_button');
-    const sclDataInput = document.getElementById('scl_data'); // Skryté pole pro finální string
+    const sclDataInput = document.getElementById('scl_limits'); // Skryté pole pro finální string
 
     // 1. Funkce pro serializaci SCL formulářů na finální string
     function serializeScls() {
