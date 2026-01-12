@@ -35,6 +35,24 @@ HAZARD_GROUPS = {
         "Aquatic Chronic 4",
     ],
     "AcuteTox": ["Acute Tox. 1", "Acute Tox. 2", "Acute Tox. 3", "Acute Tox. 4"],
+    "AcuteToxDermal": [
+        "Acute Tox. 1 (Dermal)",
+        "Acute Tox. 2 (Dermal)",
+        "Acute Tox. 3 (Dermal)",
+        "Acute Tox. 4 (Dermal)",
+    ],
+    "AcuteToxOral": [
+        "Acute Tox. 1 (Oral)",
+        "Acute Tox. 2 (Oral)",
+        "Acute Tox. 3 (Oral)",
+        "Acute Tox. 4 (Oral)",
+    ],
+    "AcuteToxInhalation": [
+        "Acute Tox. 1 (Inhalation)",
+        "Acute Tox. 2 (Inhalation)",
+        "Acute Tox. 3 (Inhalation)",
+        "Acute Tox. 4 (Inhalation)",
+    ],
 }
 
 CAT_TO_GROUP = {c: grp for grp, cats in HAZARD_GROUPS.items() for c in cats}
@@ -171,6 +189,33 @@ def _get_target_category_from_hcode(h_code: str, group: str) -> str:
             return "Eye Irrit. 2"
     elif group == "STOT_SE" and h_code == "H336":
         return "STOT SE 3 (Narcotic)"
+    
+    # Akutní toxicita - Dermální
+    elif group == "AcuteToxDermal":
+        if h_code == "H310":
+            return "Acute Tox. 1 (Dermal)"  # Kat. 1 a 2 mají stejnou H-větu
+        if h_code == "H311":
+            return "Acute Tox. 3 (Dermal)"
+        if h_code == "H312":
+            return "Acute Tox. 4 (Dermal)"
+    
+    # Akutní toxicita - Orální
+    elif group == "AcuteToxOral":
+        if h_code == "H300":
+            return "Acute Tox. 1 (Oral)"  # Kat. 1 a 2 mají stejnou H-větu
+        if h_code == "H301":
+            return "Acute Tox. 3 (Oral)"
+        if h_code == "H302":
+            return "Acute Tox. 4 (Oral)"
+    
+    # Akutní toxicita - Inhalační
+    elif group == "AcuteToxInhalation":
+        if h_code == "H330":
+            return "Acute Tox. 1 (Inhalation)"  # Kat. 1 a 2 mají stejnou H-větu
+        if h_code == "H331":
+            return "Acute Tox. 3 (Inhalation)"
+        if h_code == "H332":
+            return "Acute Tox. 4 (Inhalation)"
 
     # Generic lookup
     for cat_name, h in SCL_HAZARD_TO_H_CODE.items():
@@ -249,6 +294,32 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
             )
 
 
+def _evaluate_acute_toxicity_hazards(hazard_totals, health_hazards, health_ghs, log_entries):
+    """Vyhodnotí akutní toxicitu (Acute Tox 3/4) pro všechny cesty expozice."""
+    
+    # Definice kategorií a jejich priorit (1 > 2 > 3 > 4)
+    # Zpracováváme pouze kategorie 3 a 4, protože 1 a 2 se řeší přes ATEmix
+    categories = [
+        ("Acute Tox. 3 (Dermal)", "H311", "GHS06"),
+        ("Acute Tox. 4 (Dermal)", "H312", "GHS07"),
+        ("Acute Tox. 3 (Oral)", "H301", "GHS06"),
+        ("Acute Tox. 4 (Oral)", "H302", "GHS07"),
+        ("Acute Tox. 3 (Inhalation)", "H331", "GHS06"),
+        ("Acute Tox. 4 (Inhalation)", "H332", "GHS07"),
+    ]
+    
+    for cat, h_code, ghs_code in categories:
+        if cat in hazard_totals and hazard_totals[cat]["total"] > 0:
+            health_hazards.add(h_code)
+            health_ghs.add(ghs_code)
+            contributors = hazard_totals[cat]["contributors"]
+            log_entries.append({
+                "step": cat,
+                "detail": f"Splněno: {', '.join(contributors)}",
+                "result": h_code,
+            })
+
+
 def _evaluate_stot_se3(hazard_totals, health_hazards, health_ghs, log_entries):
     """Vyhodnotí STOT SE 3 (podráždění dýchacích cest a narkotické účinky)."""
     sum_stot_se3 = hazard_totals.get("STOT SE 3", {}).get("total", 0.0)
@@ -283,6 +354,19 @@ def _evaluate_generic_hazards(hazard_totals, health_hazards, health_ghs, log_ent
         "Lact.",
         "ED HH 1",
         "ED HH 2",
+        # Akutní toxicita (zpracováno v _evaluate_acute_toxicity_hazards)
+        "Acute Tox. 1 (Dermal)",
+        "Acute Tox. 2 (Dermal)",
+        "Acute Tox. 3 (Dermal)",
+        "Acute Tox. 4 (Dermal)",
+        "Acute Tox. 1 (Oral)",
+        "Acute Tox. 2 (Oral)",
+        "Acute Tox. 3 (Oral)",
+        "Acute Tox. 4 (Oral)",
+        "Acute Tox. 1 (Inhalation)",
+        "Acute Tox. 2 (Inhalation)",
+        "Acute Tox. 3 (Inhalation)",
+        "Acute Tox. 4 (Inhalation)",
     ]
     for cat, data in hazard_totals.items():
         if cat in ignored_cats or cat.startswith("Aquatic"):
@@ -329,7 +413,12 @@ def classify_by_concentration_limits(
                 {"step": "Asp. Tox. 1", "detail": "Součet >= 10%", "result": "H304"}
             )
 
-        # 4. Generic (Sens, CMR, STOT RE/SE 1/2)
+        # 4. Acute Toxicity (NEW)
+        _evaluate_acute_toxicity_hazards(
+            hazard_totals, health_hazards, health_ghs, log_entries
+        )
+
+        # 5. Generic (Sens, CMR, STOT RE/SE 1/2)
         _evaluate_generic_hazards(
             hazard_totals, health_hazards, health_ghs, log_entries
         )

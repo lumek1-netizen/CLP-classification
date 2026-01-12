@@ -58,6 +58,21 @@ STANDARD_CONCENTRATION_LIMITS = {
     "Aquatic Chronic 3": {"h_code": "H412", "cl": 25.0, "ghs": "GHS09"},
     "Aquatic Chronic 4": {"h_code": "H413", "cl": 25.0, "ghs": "GHS09"},
     "Asp. Tox. 1": {"h_code": "H304", "cl": 10.0, "ghs": "GHS08"},
+    # Akutní toxicita - dermální
+    "Acute Tox. 1 (Dermal)": {"h_code": "H310", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 2 (Dermal)": {"h_code": "H310", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 3 (Dermal)": {"h_code": "H311", "cl": 10.0, "ghs": "GHS06"},
+    "Acute Tox. 4 (Dermal)": {"h_code": "H312", "cl": 25.0, "ghs": "GHS07"},
+    # Akutní toxicita - orální
+    "Acute Tox. 1 (Oral)": {"h_code": "H300", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 2 (Oral)": {"h_code": "H300", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 3 (Oral)": {"h_code": "H301", "cl": 10.0, "ghs": "GHS06"},
+    "Acute Tox. 4 (Oral)": {"h_code": "H302", "cl": 25.0, "ghs": "GHS07"},
+    # Akutní toxicita - inhalační
+    "Acute Tox. 1 (Inhalation)": {"h_code": "H330", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 2 (Inhalation)": {"h_code": "H330", "cl": 3.0, "ghs": "GHS06"},
+    "Acute Tox. 3 (Inhalation)": {"h_code": "H331", "cl": 10.0, "ghs": "GHS06"},
+    "Acute Tox. 4 (Inhalation)": {"h_code": "H332", "cl": 25.0, "ghs": "GHS07"},
 }
 
 HEALTH_H_PHRASES = {
@@ -151,6 +166,21 @@ SCL_HAZARD_TO_H_CODE = {
     "Acute Tox. 2": "H300",
     "Acute Tox. 3": "H301",
     "Acute Tox. 4": "H302",
+    # Dermální akutní toxicita
+    "Acute Tox. 1 (Dermal)": "H310",
+    "Acute Tox. 2 (Dermal)": "H310",
+    "Acute Tox. 3 (Dermal)": "H311",
+    "Acute Tox. 4 (Dermal)": "H312",
+    # Orální akutní toxicita
+    "Acute Tox. 1 (Oral)": "H300",
+    "Acute Tox. 2 (Oral)": "H300",
+    "Acute Tox. 3 (Oral)": "H301",
+    "Acute Tox. 4 (Oral)": "H302",
+    # Inhalační akutní toxicita
+    "Acute Tox. 1 (Inhalation)": "H330",
+    "Acute Tox. 2 (Inhalation)": "H330",
+    "Acute Tox. 3 (Inhalation)": "H331",
+    "Acute Tox. 4 (Inhalation)": "H332",
 }
 
 SCL_HAZARD_TO_GHS_CODE = {
@@ -189,6 +219,21 @@ SCL_HAZARD_TO_GHS_CODE = {
     "Acute Tox. 2": "GHS06",
     "Acute Tox. 3": "GHS06",
     "Acute Tox. 4": "GHS07",
+    # Dermální akutní toxicita
+    "Acute Tox. 1 (Dermal)": "GHS06",
+    "Acute Tox. 2 (Dermal)": "GHS06",
+    "Acute Tox. 3 (Dermal)": "GHS06",
+    "Acute Tox. 4 (Dermal)": "GHS07",
+    # Orální akutní toxicita
+    "Acute Tox. 1 (Oral)": "GHS06",
+    "Acute Tox. 2 (Oral)": "GHS06",
+    "Acute Tox. 3 (Oral)": "GHS06",
+    "Acute Tox. 4 (Oral)": "GHS07",
+    # Inhalační akutní toxicita
+    "Acute Tox. 1 (Inhalation)": "GHS06",
+    "Acute Tox. 2 (Inhalation)": "GHS06",
+    "Acute Tox. 3 (Inhalation)": "GHS06",
+    "Acute Tox. 4 (Inhalation)": "GHS07",
 }
 
 SCL_HAZARD_CATEGORIES = sorted(list(set(SCL_HAZARD_TO_H_CODE.keys())))
