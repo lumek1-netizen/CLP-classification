@@ -3,6 +3,13 @@ from wtforms import StringField, TextAreaField, FloatField, IntegerField, Hidden
 from wtforms.validators import DataRequired, Length, Optional, NumberRange
 
 
+def empty_to_none(value):
+    """Převede prázdné stringy na None pro správnou validaci Optional polí."""
+    if value == '' or value is None:
+        return None
+    return value
+
+
 class SubstanceForm(FlaskForm):
     name = StringField("Název látky", validators=[DataRequired(), Length(max=100)])
     cas_number = StringField("CAS číslo", validators=[Optional(), Length(max=20)])
@@ -14,26 +21,26 @@ class SubstanceForm(FlaskForm):
     scl_limits = HiddenField()  # JSON nebo řetězec se SCL limity
 
     ate_oral = FloatField(
-        "ATE orální (mg/kg)", validators=[Optional(), NumberRange(min=0)]
+        "ATE orální (mg/kg)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
     ate_dermal = FloatField(
-        "ATE dermální (mg/kg)", validators=[Optional(), NumberRange(min=0)]
+        "ATE dermální (mg/kg)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
     ate_inhalation_vapours = FloatField(
-        "ATE inhalační - páry (mg/l)", validators=[Optional(), NumberRange(min=0)]
+        "ATE inhalační - páry (mg/l)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
     ate_inhalation_dusts_mists = FloatField(
-        "ATE inhalační - prach/mlha (mg/l)", validators=[Optional(), NumberRange(min=0)]
+        "ATE inhalační - prach/mlha (mg/l)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
     ate_inhalation_gases = FloatField(
-        "ATE inhalační - plyny (ppm)", validators=[Optional(), NumberRange(min=0)]
+        "ATE inhalační - plyny (ppm)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
 
     m_factor_acute = IntegerField(
-        "M-faktor akutní", validators=[Optional(), NumberRange(min=1)], default=1
+        "M-faktor akutní", validators=[Optional(), NumberRange(min=1)], default=1, filters=[empty_to_none]
     )
     m_factor_chronic = IntegerField(
-        "M-faktor chronický", validators=[Optional(), NumberRange(min=1)], default=1
+        "M-faktor chronický", validators=[Optional(), NumberRange(min=1)], default=1, filters=[empty_to_none]
     )
 
 

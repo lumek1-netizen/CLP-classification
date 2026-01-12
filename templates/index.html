@@ -28,10 +28,10 @@
         <table class="data-list">
             <thead class="table-secondary">
                 <tr>
-                    <th style="width: 30%;">Název Směsi</th>
+                    <th style="width: 25%;">Název Směsi</th>
                     <th style="width: 15%;">Datum Vytvoření</th>
                     <th style="width: 15%;">Signální Slovo</th>
-                    <th style="width: 10%;">GHS Symboly</th>
+                    <th style="width: 15%;">GHS Symboly</th>
                     <th style="width: 20%;">H-věty</th>
                     {% if current_user.has_role(['admin', 'editor']) %}
                     <th style="width: 10%;" class="text-center">Akce</th>
@@ -43,16 +43,16 @@
                 <tr class="clickable-row" data-href="{{ url_for('mixtures.detail', mixture_id=mixture.id) }}"
                     style="cursor: pointer;">
 
-                    <td>
+                    <td data-label="Název Směsi">
                         <a href="{{ url_for('mixtures.detail', mixture_id=mixture.id) }}"
-                            style="color: inherit; text-decoration: none;" onclick="event.stopPropagation();">
+                            style="color: var(--primary-color); font-weight: 600; text-decoration: none;" onclick="event.stopPropagation();">
                             {{ mixture.name }}
                         </a>
                     </td>
 
-                    <td><small class="text-muted">{{ mixture.created_date.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                    <td data-label="Datum Vytvoření"><small class="text-muted">{{ mixture.created_date.strftime('%d.%m.%Y %H:%M') }}</small></td>
 
-                    <td>
+                    <td data-label="Signální Slovo">
                         {% if mixture.final_signal_word == 'NEBEZPEČÍ' %}
                         <span class="badge badge-danger">NEBEZPEČÍ</span>
                         {% elif mixture.final_signal_word == 'VAROVÁNÍ' %}
@@ -62,17 +62,22 @@
                         {% endif %}
                     </td>
 
-                    <td>
+                    <td data-label="GHS Symboly">
+                        <div class="d-flex" style="gap: 0.25rem; flex-wrap: wrap;">
                         {% if mixture.final_ghs_codes %}
                         {% for code in mixture.final_ghs_codes.split(', ') %}
-                        <span class="ghs-tag">{{ code }}</span>
+                        <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}"
+                             alt="{{ code }}" title="{{ code }}"
+                             style="width: 24px; height: 24px;"
+                             onerror="this.style.display='none'">
                         {% endfor %}
                         {% else %}
                         N/A
                         {% endif %}
+                        </div>
                     </td>
 
-                    <td>
+                    <td data-label="H-věty">
                         {% set all_h_phrases = [] %}
                         {% if mixture.final_health_hazards %}
                         {% set all_h_phrases = all_h_phrases + mixture.final_health_hazards.split(', ') %}
@@ -81,25 +86,27 @@
                         {% set all_h_phrases = all_h_phrases + mixture.final_environmental_hazards.split(', ') %}
                         {% endif %}
 
-                        {{ all_h_phrases | join(', ') if all_h_phrases else '-' }}
+                        <small>{{ all_h_phrases | join(', ') if all_h_phrases else '-' }}</small>
                     </td>
 
                     {% if current_user.has_role(['admin', 'editor']) %}
-                    <td class="text-center">
-                        <a href="{{ url_for('mixtures.edit', mixture_id=mixture.id) }}" class="button button-small"
-                            style="text-decoration: none; background-color: #17a2b8; color: white; margin-right: 5px;"
-                            onclick="event.stopPropagation();">
-                            Upravit
-                        </a>
+                    <td class="text-center" data-label="Akce">
+                        <div class="d-flex justify-content-center" style="gap: 0.5rem;">
+                            <a href="{{ url_for('mixtures.edit', mixture_id=mixture.id) }}" class="button button-small"
+                                style="text-decoration: none; background-color: #17a2b8; color: white;"
+                                onclick="event.stopPropagation();">
+                                Upravit
+                            </a>
 
-                        <form method="POST" action="{{ url_for('mixtures.delete', mixture_id=mixture.id) }}"
-                            style="display:inline;" onclick="event.stopPropagation();">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <button type="submit" class="button button-delete button-small" title="Smazat směs"
-                                onclick="return confirm('Opravdu chcete smazat směs {{ mixture.name }}? Tato akce je nevratná.');">
-                                Smazat
-                            </button>
-                        </form>
+                            <form method="POST" action="{{ url_for('mixtures.delete', mixture_id=mixture.id) }}"
+                                style="display:inline;" onclick="event.stopPropagation();">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="button button-delete button-small" title="Smazat směs"
+                                    onclick="return confirm('Opravdu chcete smazat směs {{ mixture.name }}? Tato akce je nevratná.');">
+                                    Smazat
+                                </button>
+                            </form>
+                        </div>
                     </td>
                     {% endif %}
                 </tr>

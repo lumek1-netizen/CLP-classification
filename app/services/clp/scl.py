@@ -1,5 +1,78 @@
 from typing import Dict, List, Any, Optional
+import re
 from app.constants.clp import SCL_HAZARD_TO_H_CODE, SCL_HAZARD_TO_GHS_CODE
+
+
+def _normalize_scl_input(scls_string: str) -> str:
+    """
+    Normalizuje uživatelský vstup SCL do standardního formátu.
+    
+    Podporuje:
+    - Nové řádky jako oddělovače kategorií
+    - Symboly % (odstraní se)
+    - Desetinné čárky (převede na tečky)
+    - H-kódy za středníkem (odstraní se)
+    - Rozsahy (např. "1 - 30" → extrahuje dolní limit)
+    - Multi-line formát (kategorie na jednom řádku, hodnota na dalším)
+    """
+    if not scls_string:
+        return ""
+    
+    # Krok 1: Jednoduchá předzpracování  
+    # Odstranit H-kódy (např. "; H319")
+    normalized = re.sub(r';\s*H\d{3}', '', scls_string)
+    # Odstranit %
+    normalized = normalized.replace('%', '')
+    # Převést desetinné čárky na tečky v číslech
+    normalized = re.sub(r'(\d+),(\d+)', r'\1.\2', normalized)
+    
+    # Krok 2: Zpracovat řádky
+    # Rozdělit na řádky a odstranit prázdné
+    lines = [line.strip() for line in normalized.split('\n') if line.strip()]
+    
+    # Kor 3: Zpracovat multi-line formát (kategorie + hodnota na dalším řádku)
+    # Algoritmus: pokud řádek začíná operátorem nebo číslem, je to hodnota pro předchozí kategorii
+    result_parts = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        
+        # Je to kategorie (obsahuje písmena) nebo hodnota (začíná operátorem/číslem)?
+        is_value_line = re.match(r'^\s*([><<=]{1,2})?\s*\d', line)
+        
+        if is_value_line and result_parts:
+            # Toto je hodnota pro předchozí kategorii
+            # Zpracovat rozsahy
+            value = _process_range_in_value(line)
+            # Přidat k poslední kategorii
+            result_parts[-1] = f"{result_parts[-1]}: {value}"
+        elif not is_value_line:
+            # Toto je kategorie
+            result_parts.append(line)
+        
+        i += 1
+    
+    # Krok 4: Spojit částečky čárkami
+    normalized = ', '.join(result_parts)
+    
+    return normalized
+
+
+def _process_range_in_value(value_str: str) -> str:
+    """Zpracuje rozsahy v hodnotě (např. '1 - 30' → '>= 1')"""
+    def process_range(match):
+        operator = match.group(1) or '>='
+        lower_value = match.group(2).strip()
+        return f"{operator} {lower_value}"
+    
+    # Regex pro rozsahy
+    processed = re.sub(
+        r'([><<=]{1,2})?\s*(\d+(?:\.\d+)?)\s+\-\s+(\d+(?:\.\d+)?)',
+        process_range,
+        value_str
+    )
+    
+    return processed.strip()
 
 
 def _resolve_hazard_codes(hazard_category: str) -> tuple:
@@ -14,6 +87,9 @@ def parse_scls(scls_string: Optional[str]) -> Dict[str, List[Dict[str, Any]]]:
     if not scls_string:
         return {}
 
+    # Normalizace vstupu pro podporu uživatelsky přívětivých formátů
+    scls_string = _normalize_scl_input(scls_string)
+    
     parsed_scls = {}
     hazard_parts = [p.strip() for p in scls_string.split(",") if p.strip()]
 

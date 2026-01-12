@@ -39,42 +39,44 @@
                 <h3 style="border-bottom: none; margin-bottom: 0.5rem;">⚠️ Výsledná Klasifikace CLP</h3>
                 <hr style="margin: 0 0 1.5rem 0; opacity: 0.1;">
 
-                <div class="d-flex" style="gap: 4rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <div class="d-flex" style="gap: 3rem; margin-bottom: 2rem; flex-wrap: wrap;">
                     <div class="detail-group">
                         <label
-                            style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: #64748b;">Signální
+                            style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: var(--text-secondary);">Signální
                             Slovo:</label>
                         <div>
                             {% if mixture.final_signal_word == 'NEBEZPEČÍ' %}
-                            <span class="badge"
-                                style="background-color: #64748b; font-size: 1rem; padding: 0.6rem 1.2rem; border-radius: 50px; text-transform: uppercase; letter-spacing: 0.05em;">NEBEZPEČÍ</span>
+                            <span class="badge badge-danger"
+                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">NEBEZPEČÍ</span>
                             {% elif mixture.final_signal_word == 'VAROVÁNÍ' %}
-                            <span class="badge"
-                                style="background-color: #f59e0b; font-size: 1rem; padding: 0.6rem 1.2rem; border-radius: 50px; text-transform: uppercase; letter-spacing: 0.05em;">VAROVÁNÍ</span>
+                            <span class="badge badge-warning"
+                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">VAROVÁNÍ</span>
                             {% else %}
-                            <span class="badge"
-                                style="background-color: #10b981; font-size: 1rem; padding: 0.6rem 1.2rem; border-radius: 50px;">Neklasifikováno</span>
+                            <span class="badge badge-success"
+                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">Neklasifikováno</span>
                             {% endif %}
                         </div>
                     </div>
 
                     <div class="detail-group">
-                        <label style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: #64748b;">GHS
-                            Piktogramy / Třídy nebezpečnosti:</label>
+                        <label
+                            style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: var(--text-secondary);">GHS
+                            Piktogramy:</label>
                         <div class="ghs-pictograms-container" style="gap: 1rem; margin-top: 0;">
                             {% if mixture.final_ghs_codes %}
                             {% for code in mixture.final_ghs_codes.split(', ') %}
                             <div class="ghs-item-box">
                                 <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}"
                                     alt="{{ code }}" class="ghs-pictogram-img"
-                                    style="width: 50px; height: 50px; border: 1px solid #f1f5f9; padding: 5px;"
+                                    style="width: 54px; height: 54px; border: 1px solid var(--border-color); padding: 4px; border-radius: 8px;"
                                     onerror="this.style.display='none'">
                                 <span class="ghs-code-label"
-                                    style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem;">{{ code }}</span>
+                                    style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">{{ code
+                                    }}</span>
                             </div>
                             {% endfor %}
                             {% else %}
-                            <p>N/A</p>
+                            <p class="text-muted">N/A</p>
                             {% endif %}
                         </div>
                     </div>

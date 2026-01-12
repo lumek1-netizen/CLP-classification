@@ -120,45 +120,73 @@ def edit(substance_id):
     substance = db.get_or_404(Substance, substance_id)
     form = SubstanceForm(obj=substance)
 
-    if form.validate_on_submit():
+    if request.method == 'POST':
+        # Manuální zpracování formuláře místo form.validate_on_submit()
+        # abychom obešli problém s FloatField a prázdnými stringy
         try:
-            substance.name = form.name.data.strip()
-            substance.cas_number = (
-                form.cas_number.data.strip() if form.cas_number.data else None
-            )
-            substance.ghs_codes = (
-                form.ghs_codes.data.strip() if form.ghs_codes.data else None
-            )
+            # Validace povinného pole name
+            if not request.form.get('name', '').strip():
+                flash("Název látky je povinný.", "danger")
+            else:
+                substance.name = request.form.get('name').strip()
+                substance.cas_number = request.form.get('cas_number').strip() if request.form.get('cas_number') else None
+                substance.ghs_codes = request.form.get('ghs_codes').strip() if request.form.get('ghs_codes') else None
 
-            health_list = request.form.getlist("health_h_phrases")
-            env_list = request.form.getlist("env_h_phrases")
-            substance.health_h_phrases = ", ".join(health_list) if health_list else None
-            substance.env_h_phrases = ", ".join(env_list) if env_list else None
+                health_list = request.form.getlist("health_h_phrases")
+                env_list = request.form.getlist("env_h_phrases")
+                substance.health_h_phrases = ", ".join(health_list) if health_list else None
+                substance.env_h_phrases = ", ".join(env_list) if env_list else None
 
-            substance.ate_oral = form.ate_oral.data
-            substance.ate_dermal = form.ate_dermal.data
-            substance.ate_inhalation_vapours = form.ate_inhalation_vapours.data
-            substance.ate_inhalation_dusts_mists = form.ate_inhalation_dusts_mists.data
-            substance.ate_inhalation_gases = form.ate_inhalation_gases.data
-            substance.m_factor_acute = form.m_factor_acute.data or 1
-            substance.m_factor_chronic = form.m_factor_chronic.data or 1
-            substance.scl_limits = form.scl_limits.data
+                # ATE hodnoty - převést prázdné stringy na None
+                def get_float_or_none(field_name):
+                    val = request.form.get(field_name, '').strip()
+                    if val == '':
+                        return None
+                    try:
+                        # Nahradit desetinné čárky tečkami
+                        val = val.replace(',', '.')
+                        return float(val)
+                    except ValueError:
+                        return None
 
-            substance.is_lact = form.is_lact.data
-            substance.ed_hh_cat = form.ed_hh_cat.data if form.ed_hh_cat.data > 0 else None
-            substance.ed_env_cat = form.ed_env_cat.data if form.ed_env_cat.data > 0 else None
-            substance.is_pbt = form.is_pbt.data
-            substance.is_vpvb = form.is_vpvb.data
-            substance.is_pmt = form.is_pmt.data
-            substance.is_vpvm = form.is_vpvm.data
-            substance.has_ozone = form.has_ozone.data
+                def get_int_or_default(field_name, default=1):
+                    val = request.form.get(field_name, '').strip()
+                    if val == '':
+                        return default
+                    try:
+                        return int(val)
+                    except ValueError:
+                        return default
 
-            db.session.commit()
-            flash(f"Látka '{substance.name}' byla aktualizována.", "success")
-            return redirect(url_for("substances.index"))
+                substance.ate_oral = get_float_or_none('ate_oral')
+                substance.ate_dermal = get_float_or_none('ate_dermal')
+                substance.ate_inhalation_vapours = get_float_or_none('ate_inhalation_vapours')
+                substance.ate_inhalation_dusts_mists = get_float_or_none('ate_inhalation_dusts_mists')
+                substance.ate_inhalation_gases = get_float_or_none('ate_inhalation_gases')
+                substance.m_factor_acute = get_int_or_default('m_factor_acute', 1)
+                substance.m_factor_chronic = get_int_or_default('m_factor_chronic', 1)
+                substance.scl_limits = request.form.get('scl_limits', '').strip() or None
+
+
+                substance.is_lact = 'is_lact' in request.form
+                ed_hh = request.form.get('ed_hh_cat', '0')
+                substance.ed_hh_cat = int(ed_hh) if ed_hh and int(ed_hh) > 0 else None
+                ed_env = request.form.get('ed_env_cat', '0')
+                substance.ed_env_cat = int(ed_env) if ed_env and int(ed_env) > 0 else None
+                substance.is_pbt = 'is_pbt' in request.form
+                substance.is_vpvb = 'is_vpvb' in request.form
+                substance.is_pmt = 'is_pmt' in request.form
+                substance.is_vpvm = 'is_vpvm' in request.form
+                substance.has_ozone = 'has_ozone' in request.form
+
+                db.session.commit()
+                flash(f"Látka '{substance.name}' byla aktualizována.", "success")
+                return redirect(url_for("substances.index"))
         except Exception as e:
             db.session.rollback()
             flash(f"Chyba: {str(e)}", "danger")
+
+
 
     selected_health = (
         [h.strip() for h in substance.health_h_phrases.split(",")]

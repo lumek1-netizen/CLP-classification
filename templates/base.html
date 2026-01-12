@@ -15,8 +15,15 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>🧪 CLP Kalkulátor</h1>
-            <nav class="tabs">
+            <div class="header-left">
+                <h1>🧪 CLP Kalkulátor</h1>
+                <button class="mobile-menu-toggle" aria-label="Menu" id="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <nav class="tabs" id="nav-menu">
                 <a href="{{ url_for('mixtures.index') }}"
                     class="tab {% if active_tab == 'mixtures' %}active{% endif %}">Směsi</a>
                 <a href="{{ url_for('substances.index') }}"
@@ -30,11 +37,27 @@
                     class="tab {% if active_tab == 'admin_audit' %}active{% endif %}">Audit Log</a>
                 {% endif %}
             </nav>
-            <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Přepnout tmavý režim">
-                <span class="theme-icon">🌙</span>
-            </button>
+            <div class="header-right">
+                <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Přepnout tmavý režim">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
         </div>
     </header>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggle = document.getElementById('mobile-menu-toggle');
+            const menu = document.getElementById('nav-menu');
+
+            if (toggle && menu) {
+                toggle.addEventListener('click', function () {
+                    menu.classList.toggle('active');
+                    toggle.classList.toggle('active');
+                });
+            }
+        });
+    </script>
     <main class="container">
         {% block content %}
         {% endblock %}
