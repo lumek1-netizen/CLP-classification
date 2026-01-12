@@ -23,8 +23,12 @@ def _normalize_scl_input(scls_string: str) -> str:
     normalized = re.sub(r';\s*H\d{3}', '', scls_string)
     # Odstranit %
     normalized = normalized.replace('%', '')
-    # Převést desetinné čárky na tečky v číslech
-    normalized = re.sub(r'(\d+),(\d+)', r'\1.\2', normalized)
+    
+    # Podpora pro unicode operátory
+    normalized = normalized.replace('≤', '<=').replace('≥', '>=')
+    
+    # Převést desetinné čárky na tečky v číslech (včetně mezer kolem čárky)
+    normalized = re.sub(r'(\d+)\s*,\s*(\d+)', r'\1.\2', normalized)
     
     # Krok 2: Zpracovat řádky
     # Rozdělit na řádky a odstranit prázdné
@@ -172,11 +176,11 @@ def evaluate_scl_condition(
     for cond in conditions:
         op = cond["op"]
         val = cond["value"]
-        if op == ">=" and not (concentration >= val):
+        if op in [">=", "≥"] and not (concentration >= val):
             return False
         if op == ">" and not (concentration > val):
             return False
-        if op == "<=" and not (concentration <= val):
+        if op in ["<=", "≤"] and not (concentration <= val):
             return False
         if op == "<" and not (concentration < val):
             return False
