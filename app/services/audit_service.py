@@ -2,11 +2,12 @@ from flask_login import current_user
 from app.models.audit import AuditLog
 from app.extensions import db
 from sqlalchemy import event
+from datetime import datetime
 import json
 
 class AuditService:
     @staticmethod
-    def log_change(entity, action, changes=None):
+    def log_change(entity, action, changes=None, connection=None):
         """
         Vytvoří záznam do audit logu.
         """
@@ -23,17 +24,33 @@ class AuditService:
             return
 
         user_id = None
-        if current_user and current_user.is_authenticated:
-            user_id = current_user.id
+        try:
+            if current_user and current_user.is_authenticated:
+                user_id = current_user.id
+        except Exception:
+            user_id = None
 
-        log_entry = AuditLog(
-            user_id=user_id,
-            entity_type=entity_type,
-            entity_id=entity.id,
-            action=action,
-            changes=changes
-        )
-        db.session.add(log_entry)
+        if connection:
+            # Použijeme přímé vložení přes connection, aby se předešlo varování v flush procesu
+            connection.execute(
+                AuditLog.__table__.insert().values(
+                    user_id=user_id,
+                    entity_type=entity_type,
+                    entity_id=entity.id,
+                    action=action,
+                    changes=changes,
+                    timestamp=datetime.utcnow()
+                )
+            )
+        else:
+            log_entry = AuditLog(
+                user_id=user_id,
+                entity_type=entity_type,
+                entity_id=entity.id,
+                action=action,
+                changes=changes
+            )
+            db.session.add(log_entry)
 
     @staticmethod
     def get_object_changes(obj):
@@ -71,7 +88,7 @@ def register_audit_listeners():
                 k: str(v) for k, v in target.__dict__.items() 
                 if not k.startswith('_') and k != 'classification_log'
             }
-            AuditService.log_change(target, 'CREATE', {"initial": initial_data})
+            AuditService.log_change(target, 'CREATE', {"initial": initial_data}, connection=connection)
         except Exception:
             pass # Selhání logu nesmí shodit aplikaci
 
@@ -81,7 +98,7 @@ def register_audit_listeners():
         try:
             changes = AuditService.get_object_changes(target)
             if changes:
-                AuditService.log_change(target, 'UPDATE', changes)
+                AuditService.log_change(target, 'UPDATE', changes, connection=connection)
         except Exception:
             pass
 
@@ -89,6 +106,6 @@ def register_audit_listeners():
     @event.listens_for(Mixture, 'before_delete')
     def before_delete(mapper, connection, target):
         try:
-            AuditService.log_change(target, 'DELETE')
+            AuditService.log_change(target, 'DELETE', connection=connection)
         except Exception:
             pass
