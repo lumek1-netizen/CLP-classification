@@ -176,6 +176,47 @@ body {
     line-height: 1;
 }
 
+.logout-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.logout-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.logout-link:active {
+    transform: translateY(0);
+}
+
+.logout-icon {
+    font-size: 1.1rem;
+}
+
+@media screen and (max-width: 768px) {
+    .logout-text {
+        display: none;
+    }
+
+    .logout-link {
+        padding: 0.5rem;
+        margin-left: 0.25rem;
+    }
+}
+
 .tabs {
     display: flex;
     gap: 1rem;
@@ -1029,5 +1070,3 @@ hr {
     align-items: center;
     gap: 0.5rem;
 }
-
-@import url('print_style.css');

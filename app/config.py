@@ -37,3 +37,6 @@ class Config:
     # Caching
     CACHE_TYPE = os.environ.get("CACHE_TYPE", "SimpleCache")
     CACHE_DEFAULT_TIMEOUT = int(os.environ.get("CACHE_DEFAULT_TIMEOUT", 3600))
+
+    # Security limits
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB limit for uploads

@@ -5,6 +5,24 @@ from app.constants.clp import (
     SCL_HAZARD_TO_GHS_CODE,
     STANDARD_CONCENTRATION_LIMITS,
 )
+from app.constants.classification_thresholds import (
+    SKIN_CORROSION_THRESHOLD_PERCENT,
+    SKIN_CORROSION_WEIGHT_MULTIPLIER,
+    SKIN_IRRITATION_THRESHOLD_PERCENT,
+    EYE_DAMAGE_THRESHOLD_PERCENT,
+    EYE_DAMAGE_WEIGHT_MULTIPLIER,
+    EYE_IRRITATION_THRESHOLD_PERCENT,
+    STOT_SE3_THRESHOLD_PERCENT,
+    ASPIRATION_HAZARD_THRESHOLD_PERCENT,
+    LACTATION_THRESHOLD_PERCENT,
+    ED_HH_CATEGORY_1_THRESHOLD_PERCENT,
+    ED_HH_CATEGORY_2_THRESHOLD_PERCENT,
+    CMR_CUTOFF_PERCENT,
+    SENSITISATION_CUTOFF_PERCENT,
+    STOT_CATEGORY_1_CUTOFF_PERCENT,
+    AQUATIC_ACUTE_1_CUTOFF_PERCENT,
+    GENERAL_CUTOFF_PERCENT,
+)
 from .scl import parse_scls, evaluate_scl_condition
 
 # --- Konstanty pro klasifikaci ---
@@ -70,18 +88,18 @@ for cat, h_code in SCL_HAZARD_TO_H_CODE.items():
 def _get_cutoff_limit(hazard_category: str, h_code: str = None) -> float:
     """Vrátí mezní hodnotu (cut-off) pro uvažování látky v klasifikaci."""
     if any(x in hazard_category for x in ["Muta.", "Carc.", "Repr."]):
-        return 0.1
+        return CMR_CUTOFF_PERCENT
     if "Sens." in hazard_category:
-        return 0.1
+        return SENSITISATION_CUTOFF_PERCENT
     if any(x in hazard_category for x in ["STOT SE 1", "STOT RE 1"]):
-        return 0.1
+        return STOT_CATEGORY_1_CUTOFF_PERCENT
     if any(x in hazard_category for x in ["Aquatic Acute 1", "Aquatic Chronic 1"]):
-        return 0.1
+        return AQUATIC_ACUTE_1_CUTOFF_PERCENT
     if "ED HH" in hazard_category or "ED ENV" in hazard_category:
-        return 0.1
+        return CMR_CUTOFF_PERCENT
     if "PBT" in hazard_category or "vPvB" in hazard_category or "PMT" in hazard_category or "vPvM" in hazard_category:
-        return 0.1
-    return 1.0
+        return GENERAL_CUTOFF_PERCENT
+    return GENERAL_CUTOFF_PERCENT
 
 
 def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
@@ -159,16 +177,16 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
 
         # 3. Aspirační toxicita (speciální pravidlo)
         if substance.health_h_phrases and "H304" in substance.health_h_phrases:
-            if conc >= 10.0:
-                add_contribution("Asp. Tox. 1", conc, sub_name, " (>= 10%)")
+            if conc >= ASPIRATION_HAZARD_THRESHOLD_PERCENT:
+                add_contribution("Asp. Tox. 1", conc, sub_name, f" (>= {ASPIRATION_HAZARD_THRESHOLD_PERCENT}%)")
 
         # 4. Speciální třídy 2026 (Lact, ED HH)
-        if substance.is_lact and conc >= 0.3:
-            add_contribution("Lact.", conc, sub_name, " (>= 0.3%)")
+        if substance.is_lact and conc >= LACTATION_THRESHOLD_PERCENT:
+            add_contribution("Lact.", conc, sub_name, f" (>= {LACTATION_THRESHOLD_PERCENT}%)")
         
         if substance.ed_hh_cat:
             cat_name = f"ED HH {substance.ed_hh_cat}"
-            limit = 0.1 if substance.ed_hh_cat == 1 else 1.0
+            limit = ED_HH_CATEGORY_1_THRESHOLD_PERCENT if substance.ed_hh_cat == 1 else ED_HH_CATEGORY_2_THRESHOLD_PERCENT
             if conc >= limit:
                 add_contribution(cat_name, conc, sub_name, f" (>= {limit}%)")
 
@@ -230,10 +248,10 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
     sum_skin_1 = hazard_totals.get("Skin Corr. 1", {}).get("total", 0.0)
     sum_skin_2 = hazard_totals.get("Skin Irrit. 2", {}).get("total", 0.0)
 
-    if sum_skin_1 >= 5.0 or hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
+    if sum_skin_1 >= SKIN_CORROSION_THRESHOLD_PERCENT or hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
         health_hazards.add("H314")
         health_ghs.add("GHS05")
-        detail = f"Součet = {sum_skin_1}% >= 5%"
+        detail = f"Součet = {sum_skin_1}% >= {SKIN_CORROSION_THRESHOLD_PERCENT}%"
         if hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
             detail = f"Vynuceno přes SCL (Součet = {sum_skin_1}%)"
             
@@ -245,11 +263,11 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
             }
         )
     else:
-        val_skin_2 = (10 * sum_skin_1) + sum_skin_2
-        if val_skin_2 >= 10.0 or hazard_totals.get("Skin Irrit. 2", {}).get("forced_by_scl"):
+        val_skin_2 = (SKIN_CORROSION_WEIGHT_MULTIPLIER * sum_skin_1) + sum_skin_2
+        if val_skin_2 >= SKIN_IRRITATION_THRESHOLD_PERCENT or hazard_totals.get("Skin Irrit. 2", {}).get("forced_by_scl"):
             health_hazards.add("H315")
             health_ghs.add("GHS07")
-            detail = f"Vážený součet = {val_skin_2}% >= 10%"
+            detail = f"Vážený součet = {val_skin_2}% >= {SKIN_IRRITATION_THRESHOLD_PERCENT}%"
             if hazard_totals.get("Skin Irrit. 2", {}).get("forced_by_scl"):
                 detail = f"Vynuceno přes SCL (Vážený součet = {val_skin_2}%)"
             log_entries.append(
@@ -264,10 +282,10 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
     sum_eye_1 = hazard_totals.get("Eye Dam. 1", {}).get("total", 0.0) + sum_skin_1
     sum_eye_2 = hazard_totals.get("Eye Irrit. 2", {}).get("total", 0.0)
 
-    if sum_eye_1 >= 3.0 or hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
+    if sum_eye_1 >= EYE_DAMAGE_THRESHOLD_PERCENT or hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
         health_hazards.add("H318")
         health_ghs.add("GHS05")
-        detail = f"Součet = {sum_eye_1}% >= 3%"
+        detail = f"Součet = {sum_eye_1}% >= {EYE_DAMAGE_THRESHOLD_PERCENT}%"
         if hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
             detail = f"Vynuceno přes SCL (Součet = {sum_eye_1}%)"
         log_entries.append(
@@ -278,11 +296,11 @@ def _evaluate_skin_eye_hazards(hazard_totals, health_hazards, health_ghs, log_en
             }
         )
     else:
-        val_eye_2 = (10 * sum_eye_1) + sum_eye_2
-        if val_eye_2 >= 10.0 or hazard_totals.get("Eye Irrit. 2", {}).get("forced_by_scl"):
+        val_eye_2 = (EYE_DAMAGE_WEIGHT_MULTIPLIER * sum_eye_1) + sum_eye_2
+        if val_eye_2 >= EYE_IRRITATION_THRESHOLD_PERCENT or hazard_totals.get("Eye Irrit. 2", {}).get("forced_by_scl"):
             health_hazards.add("H319")
             health_ghs.add("GHS07")
-            detail = f"Vážený součet = {val_eye_2}% >= 10%"
+            detail = f"Vážený součet = {val_eye_2}% >= {EYE_IRRITATION_THRESHOLD_PERCENT}%"
             if hazard_totals.get("Eye Irrit. 2", {}).get("forced_by_scl"):
                 detail = f"Vynuceno přes SCL (Vážený součet = {val_eye_2}%)"
             log_entries.append(
@@ -324,19 +342,31 @@ def _evaluate_stot_se3(hazard_totals, health_hazards, health_ghs, log_entries):
     """Vyhodnotí STOT SE 3 (podráždění dýchacích cest a narkotické účinky)."""
     sum_stot_se3 = hazard_totals.get("STOT SE 3", {}).get("total", 0.0)
     stot_se3_contribs = hazard_totals.get("STOT SE 3", {}).get("contributors", [])
-    if sum_stot_se3 >= 20.0:
+    forced_by_scl = hazard_totals.get("STOT SE 3", {}).get("forced_by_scl", False)
+    
+    if sum_stot_se3 >= STOT_SE3_THRESHOLD_PERCENT or forced_by_scl:
+        # Detekce H335 vs H336 z contributors
         has_h335 = any("H335" in c or "STOT SE 3" in c for c in stot_se3_contribs)
-        has_h336 = any("H336" in c or "STOT SE 3" in c for c in stot_se3_contribs)
+        has_h336 = any("H336" in c or "Narcotic" in c for c in stot_se3_contribs)
+        
+        # Pro SCL případy: pokud není explicitně H336, předpokládáme H335
+        # (STOT SE 3 standardně znamená H335, H336 je speciální případ pro narkotické účinky)
+        if forced_by_scl and not has_h335 and not has_h336:
+            has_h335 = True
+        
         if has_h335:
             health_hazards.add("H335")
         if has_h336:
             health_hazards.add("H336")
         if has_h335 or has_h336:
             health_ghs.add("GHS07")
+            detail = f"Součet = {sum_stot_se3}% >= {STOT_SE3_THRESHOLD_PERCENT}%"
+            if forced_by_scl:
+                detail = f"Vynuceno přes SCL (Součet = {sum_stot_se3}%)"
             log_entries.append(
                 {
                     "step": "STOT SE 3",
-                    "detail": f"Součet = {sum_stot_se3}% >= 20%",
+                    "detail": detail,
                     "result": "H335/H336",
                 }
             )
@@ -407,10 +437,10 @@ def classify_by_concentration_limits(
         _evaluate_stot_se3(hazard_totals, health_hazards, health_ghs, log_entries)
 
         # 3. Asp. Tox. 1
-        if hazard_totals.get("Asp. Tox. 1", {}).get("total", 0.0) >= 10.0:
+        if hazard_totals.get("Asp. Tox. 1", {}).get("total", 0.0) >= ASPIRATION_HAZARD_THRESHOLD_PERCENT:
             health_hazards.add("H304")
             log_entries.append(
-                {"step": "Asp. Tox. 1", "detail": "Součet >= 10%", "result": "H304"}
+                {"step": "Asp. Tox. 1", "detail": f"Součet >= {ASPIRATION_HAZARD_THRESHOLD_PERCENT}%", "result": "H304"}
             )
 
         # 4. Acute Toxicity (NEW)
@@ -426,7 +456,7 @@ def classify_by_concentration_limits(
         # 5. Lactation & ED (Newer requirements)
         if hazard_totals.get("Lact.", {}).get("total", 0.0) > 0:
             health_hazards.add("H362")
-            log_entries.append({"step": "Lactation", "detail": "Splněno (>= 0.3%)", "result": "H362"})
+            log_entries.append({"step": "Lactation", "detail": f"Splněno (>= {LACTATION_THRESHOLD_PERCENT}%)", "result": "H362"})
         
         if hazard_totals.get("ED HH 1", {}).get("total", 0.0) > 0:
             health_hazards.add("EUH430")

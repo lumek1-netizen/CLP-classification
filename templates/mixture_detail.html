@@ -135,45 +135,48 @@
                 <h3>🧪 Vypočtené Hodnoty {ATE}</h3>
 
                 {% if mixture.final_atemix_oral or mixture.final_atemix_dermal or mixture.final_atemix_inhalation %}
-                <div class="group-grid">
-                    <div class="detail-group">
-                        <label>Orální:</label>
-                        <p>
-                            <strong>
-                                {% if mixture.final_atemix_oral is not none %}
-                                {{ "%.3f" | format(mixture.final_atemix_oral) }} mg/kg
-                                {% else %}
-                                N/A
-                                {% endif %}
-                            </strong>
-                        </p>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem;">
+
+                    <div
+                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Orální:</span>
+                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                            {% if mixture.final_atemix_oral is not none %}
+                            {{ "%.3f" | format(mixture.final_atemix_oral) }} mg/kg
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
                     </div>
-                    <div class="detail-group">
-                        <label>Dermální:</label>
-                        <p>
-                            <strong>
-                                {% if mixture.final_atemix_dermal is not none %}
-                                {{ "%.3f" | format(mixture.final_atemix_dermal) }} mg/kg
-                                {% else %}
-                                N/A
-                                {% endif %}
-                            </strong>
-                        </p>
+
+                    <div
+                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Dermální:</span>
+                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                            {% if mixture.final_atemix_dermal is not none %}
+                            {{ "%.3f" | format(mixture.final_atemix_dermal) }} mg/kg
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
                     </div>
-                    <div class="detail-group">
-                        <label>Inhalační (Nejhorší cesta):</label>
-                        <p>
-                            <strong>
-                                {% if mixture.final_atemix_inhalation is not none %}
-                                {{ "%.3f" | format(mixture.final_atemix_inhalation) }}
-                                {% else %}
-                                N/A
-                                {% endif %}
-                            </strong>
-                        </p>
+
+                    <div
+                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Inhalační
+                            (Nejhorší cesta):</span>
+                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                            {% if mixture.final_atemix_inhalation is not none %}
+                            {{ "%.3f" | format(mixture.final_atemix_inhalation) }}
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
                     </div>
+
                 </div>
-                <small class="hint mt-2">Hodnoty jsou použity pro klasifikaci akutní toxicity. Inhalační
+                <small class="hint mt-3" style="display: block; color: var(--text-muted); margin-top: 1rem;">Hodnoty
+                    jsou použity pro klasifikaci akutní toxicity. Inhalační
                     {ATE} je jednotná hodnota z nejhorší cesty (páry/prachy/mlhy/plyny).</small>
                 {% else %}
                 <p class="alert alert-info">Hodnoty ATE nebyly vypočteny (pravděpodobně chybí data

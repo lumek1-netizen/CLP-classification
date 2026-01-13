@@ -203,16 +203,16 @@ def parse_substances_csv(file_stream, valid_h_phrases: set, valid_env_phrases: s
     all_warnings = []
     
     try:
-        # Dekódování souboru
-        content = file_stream.read()
-        try:
-            text = content.decode('utf-8')
-        except UnicodeDecodeError:
-            text = content.decode('cp1252')  # Windows encoding
+        # Streamované čtení bez načtení celého souboru do RAM
+        # Předpokládáme UTF-8, pokud selže, zkusíme fallback (re-wrap streamu není triviální pro stream, 
+        # ale pro upload file stream ve Flasku můžeme zkusit seek(0))
         
-        # Parsování CSV
-        csv_file = io.StringIO(text)
-        reader = csv.DictReader(csv_file)
+        file_stream.seek(0)
+        wrapper = io.TextIOWrapper(file_stream, encoding='utf-8', errors='replace')
+        
+        # Parsování CSV přímo ze streamu
+        # Použijeme csv.DictReader přímo na wrapper objektu
+        reader = csv.DictReader(wrapper)
         
         if not reader.fieldnames:
             all_errors.append("CSV soubor je prázdný nebo nemá hlavičku")

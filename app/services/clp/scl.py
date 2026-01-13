@@ -3,80 +3,7 @@ import re
 from app.constants.clp import SCL_HAZARD_TO_H_CODE, SCL_HAZARD_TO_GHS_CODE
 
 
-def _normalize_scl_input(scls_string: str) -> str:
-    """
-    Normalizuje uživatelský vstup SCL do standardního formátu.
-    
-    Podporuje:
-    - Nové řádky jako oddělovače kategorií
-    - Symboly % (odstraní se)
-    - Desetinné čárky (převede na tečky)
-    - H-kódy za středníkem (odstraní se)
-    - Rozsahy (např. "1 - 30" → extrahuje dolní limit)
-    - Multi-line formát (kategorie na jednom řádku, hodnota na dalším)
-    """
-    if not scls_string:
-        return ""
-    
-    # Krok 1: Jednoduchá předzpracování  
-    # Odstranit H-kódy (např. "; H319")
-    normalized = re.sub(r';\s*H\d{3}', '', scls_string)
-    # Odstranit %
-    normalized = normalized.replace('%', '')
-    
-    # Podpora pro unicode operátory
-    normalized = normalized.replace('≤', '<=').replace('≥', '>=')
-    
-    # Převést desetinné čárky na tečky v číslech (včetně mezer kolem čárky)
-    normalized = re.sub(r'(\d+)\s*,\s*(\d+)', r'\1.\2', normalized)
-    
-    # Krok 2: Zpracovat řádky
-    # Rozdělit na řádky a odstranit prázdné
-    lines = [line.strip() for line in normalized.split('\n') if line.strip()]
-    
-    # Kor 3: Zpracovat multi-line formát (kategorie + hodnota na dalším řádku)
-    # Algoritmus: pokud řádek začíná operátorem nebo číslem, je to hodnota pro předchozí kategorii
-    result_parts = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        
-        # Je to kategorie (obsahuje písmena) nebo hodnota (začíná operátorem/číslem)?
-        is_value_line = re.match(r'^\s*([><<=]{1,2})?\s*\d', line)
-        
-        if is_value_line and result_parts:
-            # Toto je hodnota pro předchozí kategorii
-            # Zpracovat rozsahy
-            value = _process_range_in_value(line)
-            # Přidat k poslední kategorii
-            result_parts[-1] = f"{result_parts[-1]}: {value}"
-        elif not is_value_line:
-            # Toto je kategorie
-            result_parts.append(line)
-        
-        i += 1
-    
-    # Krok 4: Spojit částečky čárkami
-    normalized = ', '.join(result_parts)
-    
-    return normalized
 
-
-def _process_range_in_value(value_str: str) -> str:
-    """Zpracuje rozsahy v hodnotě (např. '1 - 30' → '>= 1')"""
-    def process_range(match):
-        operator = match.group(1) or '>='
-        lower_value = match.group(2).strip()
-        return f"{operator} {lower_value}"
-    
-    # Regex pro rozsahy
-    processed = re.sub(
-        r'([><<=]{1,2})?\s*(\d+(?:\.\d+)?)\s+\-\s+(\d+(?:\.\d+)?)',
-        process_range,
-        value_str
-    )
-    
-    return processed.strip()
 
 
 def _resolve_hazard_codes(hazard_category: str) -> tuple:
@@ -87,70 +14,121 @@ def _resolve_hazard_codes(hazard_category: str) -> tuple:
 
 
 def parse_scls(scls_string: Optional[str]) -> Dict[str, List[Dict[str, Any]]]:
-    """Parsuje řetězec specifických koncentračních limitů (SCLs) do slovníku."""
+    """
+    Parsuje řetězec specifických koncentračních limitů (SCLs) do slovníku.
+    
+    Očekávaný formát: "Kategorie: podmínky; Kategorie: podmínky"
+    Podmínky: ">= 5", "> 10.5", atd.
+    
+    Příklad: "Eye Irrit. 2: >= 10; Skin Irrit. 2: >= 10"
+    
+    Raises:
+        ValueError: Pokud je formát nevalidní.
+    """
     if not scls_string:
         return {}
 
-    # Normalizace vstupu pro podporu uživatelsky přívětivých formátů
-    scls_string = _normalize_scl_input(scls_string)
+    # Odstraňujeme agresivní normalizaci, pouze základní cleanup
+    scls_string = scls_string.strip()
+    # Povolit pouze běžné znaky, aby se zabránilo nesmyslům, ale to je možná moc striktní.
+    # Spíše budeme parsovat a křičet, když to nesedí.
     
     parsed_scls = {}
+    
+    # Rozdělení na jednotlivé hazardy (oddělovač čárka, pokud není uvnitř závorky nebo uvozovek - zjednodušeně čárka)
+    # Prozatím předpokládáme čárku jako oddělovač položek, pokud uživatel nepoužívá středníky na oddělení podmínek.
+    # Ve specifikaci "Eye Irrit. 2: >= 10; < 20", je středník oddělovač podmínek.
+    # Položky oddělujeme čárkou, např: "Cat1: >=1, Cat2: >=5"
+    
+    # Pro robustnější dělení (pokud by čárka byla v desetinném čísle):
+    # Nahradíme desetinné čárky tečkami pro jistotu, to je bezpečné
+    scls_string = re.sub(r'(\d+),(\d+)', r'\1.\2', scls_string)
+    
     hazard_parts = [p.strip() for p in scls_string.split(",") if p.strip()]
 
     for hazard_part in hazard_parts:
+        if ":" not in hazard_part and "=" not in hazard_part:
+            raise ValueError(f"Neplatný formát SCL položky (chybí ':' nebo '='): '{hazard_part}'")
+
         if ":" in hazard_part:
-            hazard_category, conditions_str = [
-                s.strip() for s in hazard_part.split(":", 1)
-            ]
-            condition_parts = [
-                c.strip() for c in conditions_str.split(";") if c.strip()
-            ]
-            h_code, ghs_code = _resolve_hazard_codes(hazard_category)
+            separator = ":"
+        else:
+            separator = "="
+            
+        hazard_category_raw, conditions_str = [
+            s.strip() for s in hazard_part.split(separator, 1)
+        ]
+        
+        # Validace názvu kategorie
+        # Očistíme od H-kódů pokud je uživatel zadal (např. "Eye Irrit. 2 (H319)")
+        hazard_category = re.sub(r'\s*\(?H\d{3}\)?', '', hazard_category_raw).strip()
+        
+        h_code, ghs_code = _resolve_hazard_codes(hazard_category)
+        if not h_code:
+            # Zkusíme s H-kódem v názvu, pokud by _resolve selhalo
+            pass
+            # Pokud stále nic, chyba
+            # Ale dovolíme projít, pokud je to známá kategorie, jen my ji nemáme v mapě? 
+            # Ne, chceme striktní režim.
+            if hazard_category not in SCL_HAZARD_TO_H_CODE:
+                 raise ValueError(f"Neznámá kategorie hazardu: '{hazard_category}'")
 
-            if not h_code or not ghs_code:
-                continue
+        condition_parts = [
+            c.strip() for c in conditions_str.split(";") if c.strip()
+        ]
+        
+        if not condition_parts:
+             raise ValueError(f"Žádné podmínky pro kategorii '{hazard_category}'")
 
-            if hazard_category not in parsed_scls:
-                parsed_scls[hazard_category] = []
+        if hazard_category not in parsed_scls:
+            parsed_scls[hazard_category] = []
 
-            for cond in condition_parts:
-                operator = None
-                value_str = None
-                for op in [">=", "<=", ">", "<"]:
-                    if op in cond:
-                        parts = cond.split(op, 1)
-                        if len(parts) == 2:
-                            operator = op
-                            value_str = parts[1].strip()
-                            break
+        for cond in condition_parts:
+            # Odstranění %
+            cond = cond.replace('%', '').strip()
+            
+            operator = None
+            value_str = None
+            
+            # Detekce operátoru
+            ops = [">=", "≥", "<=", "≤", ">", "<", "="]
+            for op in ops:
+                if cond.startswith(op):
+                    operator = op
+                    value_str = cond[len(op):].strip()
+                    break
+            
+            # Pokud není operátor na začátku, ale je to jen číslo, předpokládáme >= (v souladu s běžnou praxí pro limity)
+            if not operator:
+                # Zkusíme jestli to je číslo
+                try:
+                    float(cond)
+                    operator = ">="
+                    value_str = cond
+                except ValueError:
+                    pass
 
-                if operator and value_str:
-                    try:
-                        value = float(value_str)
-                        parsed_scls[hazard_category].append(
-                            {
-                                "op": operator,
-                                "value": value,
-                                "h_code": h_code,
-                                "ghs": ghs_code,
-                            }
-                        )
-                    except ValueError:
-                        continue
+            if not operator or not value_str:
+                 raise ValueError(f"Nerozpoznaná podmínka '{cond}' pro '{hazard_category}'")
 
-        elif "=" in hazard_part:
-            hazard_category, value_str = [s.strip() for s in hazard_part.split("=", 1)]
+            # Normalizace operátorů pro interní logiku
+            if operator == "≥": operator = ">="
+            if operator == "≤": operator = "<="
+            if operator == "=": operator = ">=" # Pro SCL se '=' obvykle chápe jako limit od
+
             try:
                 value = float(value_str)
-                h_code, ghs_code = _resolve_hazard_codes(hazard_category)
-                if h_code and ghs_code:
-                    if hazard_category not in parsed_scls:
-                        parsed_scls[hazard_category] = []
-                    parsed_scls[hazard_category].append(
-                        {"op": ">=", "value": value, "h_code": h_code, "ghs": ghs_code}
-                    )
             except ValueError:
-                continue
+                raise ValueError(f"Neplatná číselná hodnota '{value_str}' v podmínce '{cond}'")
+                
+            parsed_scls[hazard_category].append(
+                {
+                    "op": operator,
+                    "value": value,
+                    "h_code": h_code,
+                    "ghs": ghs_code,
+                }
+            )
 
     return parsed_scls
 

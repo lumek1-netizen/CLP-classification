@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models import Mixture, Substance, MixtureComponent
 from app.forms.mixture import MixtureForm
 from app.services.clp import run_clp_classification
+from app.services.mixture_service import MixtureService
 from app.constants.clp import H_PHRASES_DISPLAY
 from sqlalchemy.exc import IntegrityError
 
@@ -45,29 +46,10 @@ def create():
     if form.validate_on_submit():
         try:
             name = form.name.data.strip()
-            concs = request.form.getlist("concentration")
-            sub_ids = request.form.getlist("substance_id")
+            
+            # Parsování a validace komponent pomocí service layer
+            components = MixtureService.parse_and_validate_components(request.form)
 
-            components = []
-            total = 0.0
-            seen = set()
-
-            for c_str, s_id_str in zip(concs, sub_ids):
-                if not c_str or not s_id_str:
-                    continue
-                c, s_id = float(c_str), int(s_id_str)
-                if c <= 0:
-                    raise ValueError("Koncentrace musí být kladná.")
-                if s_id in seen:
-                    raise ValueError("Duplicitní složka.")
-                total += c
-                if total > 100.001:
-                    raise ValueError("Celkem přes 100 %.")
-                components.append({"substance_id": s_id, "concentration": c})
-                seen.add(s_id)
-
-            if not components:
-                raise ValueError("Směs musí mít aspoň jednu složku.")
 
             new_mixture = Mixture(name=name)
             db.session.add(new_mixture)
@@ -80,11 +62,18 @@ def create():
             run_clp_classification(new_mixture)
             db.session.commit()
 
-            flash(f"Směs '{name}' vytvořena.", "success")
+            flash(f"Směs '{name}' byla vytvořena.", "success")
             return redirect(url_for("mixtures.detail", mixture_id=new_mixture.id))
+            
+        except ValueError as e:
+            # Validační chyba - očekávaná
+            flash(f"Neplatná data: {e}", "warning")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Směs s tímto názvem již existuje.", "danger")
         except Exception as e:
             db.session.rollback()
-            flash(f"Chyba: {str(e)}", "danger")
+            flash(f"Neočekávaná chyba: {e}", "danger")
 
     return render_template(
         "mixture_form.html",
@@ -155,34 +144,31 @@ def edit(mixture_id):
     if form.validate_on_submit():
         try:
             mixture.name = form.name.data.strip()
-            concs = request.form.getlist("concentration")
-            sub_ids = request.form.getlist("substance_id")
+            
+            # Parsování a validace komponent pomocí service layer
+            components = MixtureService.parse_and_validate_components(request.form)
 
-            components = []
-            total = 0.0
-            seen = set()
-            for c_str, s_id_str in zip(concs, sub_ids):
-                if not c_str or not s_id_str:
-                    continue
-                c, s_id = float(c_str), int(s_id_str)
-                total += c
-                if total > 100.001:
-                    raise ValueError("Celkem přes 100 %.")
-                components.append({"substance_id": s_id, "concentration": c})
-                seen.add(s_id)
-
+            # Odstranění starých komponent
             MixtureComponent.query.filter_by(mixture_id=mixture.id).delete()
+            
+            # Přidání nových komponent
             for comp in components:
                 db.session.add(MixtureComponent(mixture_id=mixture.id, **comp))
 
             db.session.commit()
+            
+            # Reklasifikace
             run_clp_classification(mixture)
             db.session.commit()
-            flash("Směs aktualizována.", "success")
+            
+            flash("Směs byla aktualizována.", "success")
             return redirect(url_for("mixtures.detail", mixture_id=mixture.id))
+            
+        except ValueError as e:
+            flash(f"Neplatná data: {e}", "warning")
         except Exception as e:
             db.session.rollback()
-            flash(f"Chyba: {str(e)}", "danger")
+            flash(f"Chyba: {e}", "danger")
 
     return render_template(
         "mixture_form.html",
