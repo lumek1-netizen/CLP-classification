@@ -56,3 +56,12 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Debug and temporary files
+debug_*.py
+test_scl_diag*.py
+check_scl_db.py
+test_output*.txt
+test_results.txt
+*_analysis.txt
+report_*_problem.md
