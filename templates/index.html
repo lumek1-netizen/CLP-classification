@@ -4,20 +4,26 @@
 {% block content %}
 <div class="container mt-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Seznam Klasifikovaných Směsí</h2>
-    </div>
-
-    <div class="search-container">
-        <form action="{{ url_for('mixtures.index') }}" method="GET" class="search-form">
-            <input type="text" name="q" value="{{ q or '' }}" placeholder="Hledat podle názvu směsi..."
-                class="search-input">
-            <button type="submit" class="button button-primary button-small">Hledat</button>
-            {% if q %}
-            <a href="{{ url_for('mixtures.index') }}" class="button button-small"
-                style="background-color: var(--secondary-color); color: white; text-decoration: none;">Zrušit</a>
-            {% endif %}
-        </form>
+    <div class="sticky-action-bar">
+        <div class="d-flex align-items-center" style="gap: 1.5rem;">
+            <h2 style="margin: 0; white-space: nowrap;">Seznam směsí</h2>
+            <div style="flex-grow: 1;"></div>
+            <form action="{{ url_for('mixtures.index') }}" method="GET" class="search-form"
+                style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="text" name="q" value="{{ q or '' }}" placeholder="Hledat..." class="search-input"
+                    style="width: 250px;">
+                <button type="submit" class="button button-primary button-small">🔍</button>
+                {% if q %}
+                <a href="{{ url_for('mixtures.index') }}" class="button button-small"
+                    style="background-color: var(--secondary-color); color: white; text-decoration: none;">❌</a>
+                {% endif %}
+            </form>
+        </div>
+        {% if current_user.has_role(['admin', 'editor']) %}
+        <a href="{{ url_for('mixtures.create') }}" class="button button-primary" style="text-decoration: none;">
+            ➕ Vytvořit novou směs
+        </a>
+        {% endif %}
     </div>
 
     <hr>
@@ -29,7 +35,7 @@
             <thead class="table-secondary">
                 <tr>
                     <th style="width: 25%;">Název Směsi</th>
-                    <th style="width: 15%;">Datum Vytvoření</th>
+                    <th style="width: 15%;">Datum Vytvoření / Revize</th>
                     <th style="width: 15%;">Signální Slovo</th>
                     <th style="width: 15%;">GHS Symboly</th>
                     <th style="width: 20%;">H-věty</th>
@@ -45,12 +51,19 @@
 
                     <td data-label="Název Směsi">
                         <a href="{{ url_for('mixtures.detail', mixture_id=mixture.id) }}"
-                            style="color: var(--primary-color); font-weight: 600; text-decoration: none;" onclick="event.stopPropagation();">
+                            style="color: var(--primary-color); font-weight: 600; text-decoration: none;"
+                            onclick="event.stopPropagation();">
                             {{ mixture.name }}
                         </a>
                     </td>
 
-                    <td data-label="Datum Vytvoření"><small class="text-muted">{{ mixture.created_date.strftime('%d.%m.%Y %H:%M') }}</small></td>
+                    <td data-label="Datum Vytvoření / Revize">
+                        <small class="text-muted">{{ mixture.created_date.strftime('%d.%m.%Y') }}</small>
+                        <br>
+                        <small class="text-muted" style="font-size: 0.75em;">
+                            {{ mixture.updated_at.strftime('%d.%m.%Y') if mixture.updated_at else '-' }}
+                        </small>
+                    </td>
 
                     <td data-label="Signální Slovo">
                         {% if mixture.final_signal_word == 'NEBEZPEČÍ' %}
@@ -64,16 +77,15 @@
 
                     <td data-label="GHS Symboly">
                         <div class="d-flex" style="gap: 0.25rem; flex-wrap: wrap;">
-                        {% if mixture.final_ghs_codes %}
-                        {% for code in mixture.final_ghs_codes.split(', ') %}
-                        <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}"
-                             alt="{{ code }}" title="{{ code }}"
-                             style="width: 24px; height: 24px;"
-                             onerror="this.style.display='none'">
-                        {% endfor %}
-                        {% else %}
-                        N/A
-                        {% endif %}
+                            {% if mixture.final_ghs_codes %}
+                            {% for code in mixture.final_ghs_codes.split(', ') %}
+                            <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}" alt="{{ code }}"
+                                title="{{ code }}" style="width: 24px; height: 24px;"
+                                onerror="this.style.display='none'">
+                            {% endfor %}
+                            {% else %}
+                            N/A
+                            {% endif %}
                         </div>
                     </td>
 
@@ -117,21 +129,16 @@
 
     {{ render_pagination(pagination, 'mixtures.index') }}
 
-    {% if current_user.has_role(['admin', 'editor']) %}
-    <div class="button-group d-flex justify-content-end">
-        <a href="{{ url_for('mixtures.create') }}" class="button button-primary" style="text-decoration: none;">
-            Vytvořit novou směs
-        </a>
-    </div>
-    {% endif %}
-
     {% else %}
     <div class="alert alert-info mt-4 p-4 text-center" role="alert">
         <h4>Zatím nebyla vytvořena žádná směs.</h4>
         {% if current_user.has_role(['admin', 'editor']) %}
         <p>Začněte přidáním nové směsi, aby bylo možné vypočítat její klasifikaci CLP.</p>
-        <a href="{{ url_for('mixtures.create') }}" class="button button-primary mt-2" style="text-decoration: none;">➕
-            Vytvořit První Směs</a>
+        <div style="margin-top: 1rem;">
+            <a href="{{ url_for('mixtures.create') }}" class="button button-primary mt-2"
+                style="text-decoration: none;">➕
+                Vytvořit První Směs</a>
+        </div>
         {% else %}
         <p>Zatím zde nejsou žádná data k zobrazení.</p>
         {% endif %}

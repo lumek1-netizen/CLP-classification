@@ -1,326 +1,343 @@
 {% extends "base.html" %}
 
-{% block title %}Detail Směsi: {{ mixture.name }}{% endblock %}
+{% block title %}Detail: {{ mixture.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-
-    <div class="report-header only-print">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 style="margin: 0; color: #4f46e5;">CLP Calculator</h2>
-                <p style="margin: 0; color: #64748b;">Klasifikační Protokol Směsi</p>
+<!-- Page Header (Sticky) -->
+<div class="page-header no-print">
+    <div class="page-header__content">
+        <div class="page-title-group">
+            <div class="breadcrumbs">
+                <a href="{{ url_for('mixtures.index') }}" class="text-muted" style="text-decoration: none;">Směsi</a>
+                <span class="text-secondary">/</span> Detail
             </div>
-            <div class="text-right">
-                <p style="margin: 0;">Datum vyhotovení: {{ mixture.created_date.strftime('%d.%m.%Y') }}</p>
-                <p style="margin: 0; font-size: 0.8em; color: #94a3b8;">ID: {{ mixture.id }}</p>
-            </div>
+            <h1 class="page-title">{{ mixture.name }}</h1>
         </div>
-        <hr style="margin: 1rem 0; border-top: 2px solid #e2e8f0;">
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('mixtures.index') }}" class="button button-secondary button-small">Zpět</a>
+            <button onclick="window.print()" class="button button-secondary button-small">🖨️ Tisk</button>
+            <a href="{{ url_for('mixtures.edit', mixture_id=mixture.id) }}" class="button button-primary">✏️ Upravit
+                směs</a>
+        </div>
     </div>
+</div>
 
-    <h1 class="no-print">🔬 Detail Klasifikace Směsi: **{{ mixture.name }}**</h1>
-    <h1 class="only-print" style="font-size: 2rem;">Klasifikační Protokol: {{ mixture.name }}</h1>
-
-    <hr class="no-print">
-
+<div class="container">
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
-    {% endfor %}
+    <div class="mb-6">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+    </div>
     {% endif %}
     {% endwith %}
 
-    <div class="row">
+    <div class="report-header only-print">
+        <h1 class="print-title">Klasifikační Protokol: {{ mixture.name }}</h1>
+        <p>Datum: {{ mixture.created_date.strftime('%d.%m.%Y') }} | ID: {{ mixture.id }}</p>
+        <hr>
+    </div>
 
-        <div class="col-md-6">
-            <div class="form-card mb-4">
-                <h3 style="border-bottom: none; margin-bottom: 0.5rem;">⚠️ Výsledná Klasifikace CLP</h3>
-                <hr style="margin: 0 0 1.5rem 0; opacity: 0.1;">
+    <!-- Dashboard Grid -->
+    <div class="grid-dashboard">
 
-                <div class="d-flex" style="gap: 3rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                    <div class="detail-group">
-                        <label
-                            style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: var(--text-secondary);">Signální
-                            Slovo:</label>
-                        <div>
-                            {% if mixture.final_signal_word == 'NEBEZPEČÍ' %}
-                            <span class="badge badge-danger"
-                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">NEBEZPEČÍ</span>
-                            {% elif mixture.final_signal_word == 'VAROVÁNÍ' %}
-                            <span class="badge badge-warning"
-                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">VAROVÁNÍ</span>
-                            {% else %}
-                            <span class="badge badge-success"
-                                style="font-size: 1rem; padding: 0.6rem 1.2rem;">Neklasifikováno</span>
-                            {% endif %}
-                        </div>
-                    </div>
+        <!-- Left Column: Main Identity & Hazards -->
+        <main class="col-main">
 
-                    <div class="detail-group">
-                        <label
-                            style="display: block; margin-bottom: 0.8rem; font-size: 0.9rem; color: var(--text-secondary);">GHS
-                            Piktogramy:</label>
-                        <div class="ghs-pictograms-container" style="gap: 1rem; margin-top: 0;">
+            <!-- 1. Classification Result Card -->
+            <section class="card">
+                <div class="card__header">
+                    <h2 class="card__title">⚠️ Výsledná Klasifikace (CLP)</h2>
+                    {% set signal_class = 'danger' if mixture.final_signal_word == 'NEBEZPEČÍ' else 'warning' if
+                    mixture.final_signal_word == 'VAROVÁNÍ' else 'info' %}
+                    <span class="badge badge-{{ signal_class }} text-base">{{ mixture.final_signal_word or
+                        'Neklasifikováno' }}</span>
+                </div>
+
+                <div class="card__body">
+                    <div class="ghs-result-container mb-6">
+                        <!-- Pictograms -->
+                        <div class="d-flex gap-2 flex-wrap">
                             {% if mixture.final_ghs_codes %}
                             {% for code in mixture.final_ghs_codes.split(', ') %}
                             <div class="ghs-item-box">
                                 <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}"
-                                    alt="{{ code }}" class="ghs-pictogram-img"
-                                    style="width: 54px; height: 54px; border: 1px solid var(--border-color); padding: 4px; border-radius: 8px;"
-                                    onerror="this.style.display='none'">
-                                <span class="ghs-code-label"
-                                    style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">{{ code
-                                    }}</span>
+                                    alt="{{ code }}" class="ghs-big-icon" onerror="this.style.display='none'">
+                                <span class="text-xs font-bold">{{ code }}</span>
                             </div>
                             {% endfor %}
                             {% else %}
-                            <p class="text-muted">N/A</p>
+                            <span class="text-muted">Bez piktogramů</span>
+                            {% endif %}
+                        </div>
+
+
+                    </div>
+
+                    <hr class="mb-6" style="border-top-style: dashed;">
+
+                    <!-- H-Statements Grid -->
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <h4 class="text-lg font-bold mb-2 text-primary">Zdraví (Health)</h4>
+                            {% if mixture.final_health_hazards %}
+                            <div class="d-flex flex-column gap-2 text-sm">
+                                {% for phrase in mixture.final_health_hazards.split(', ') %}
+                                {% set val = h_phrases_display.get(phrase.strip()) %}
+                                {% if val and val is iterable and val is not string %}
+                                <div class="d-flex gap-2">
+                                    <span class="font-bold text-danger"
+                                        style="min-width: 240px; white-space: nowrap; flex-shrink: 0;">{{ val[0]
+                                        }}</span>
+                                    <span>{{ val[1] }}</span>
+                                </div>
+                                {% else %}
+                                <div>{{ val or phrase }}</div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-sm">Bez nebezpečných vlastností pro zdraví.</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 mb-4">
+                            <h4 class="text-lg font-bold mb-2 text-success">Životní prostředí (Env)</h4>
+                            {% if mixture.final_environmental_hazards %}
+                            <div class="d-flex flex-column gap-2 text-sm">
+                                {% for phrase in mixture.final_environmental_hazards.split(', ') %}
+                                {% set val = h_phrases_display.get(phrase.strip()) %}
+                                {% if val and val is iterable and val is not string %}
+                                <div class="d-flex gap-2">
+                                    <span class="font-bold text-success"
+                                        style="min-width: 240px; white-space: nowrap; flex-shrink: 0;">{{ val[0]
+                                        }}</span>
+                                    <span>{{ val[1] }}</span>
+                                </div>
+                                {% else %}
+                                <div>{{ val or phrase }}</div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-sm">Bez nebezpečných vlastností pro životní prostředí.</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 mb-4">
+                            <h4 class="text-lg font-bold mb-2 text-info">Pokyny pro bezpečné zacházení (P-věty)</h4>
+                            {% if mixture.final_precautionary_statements %}
+                            <div class="d-flex flex-column gap-2 text-sm">
+                                {% for p_code in mixture.final_precautionary_statements.split(', ') %}
+                                {% set p_text = p_phrases_text.get(p_code, "Text nenalezen") %}
+                                <div class="d-flex gap-2">
+                                    <span class="font-bold text-info"
+                                        style="min-width: 80px; white-space: nowrap; flex-shrink: 0;">{{ p_code
+                                        }}</span>
+                                    <span>{{ p_text }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-sm">Žádné specifické P-věty.</p>
                             {% endif %}
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <div class="detail-group mb-4">
-                    <label style="color: #64748b; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">H-věty
-                        (Zdraví):</label>
-                    {% if mixture.final_health_hazards %}
-                    <div class="detail-list">
-                        {% for phrase in mixture.final_health_hazards.split(', ') %}
-                        {% set val = h_phrases_display.get(phrase.strip()) %}
-                        {% if val and val is iterable and val is not string %}
-                        <div class="h-phrase-row" style="gap: 4rem; border-bottom: 1px solid #f8fafc;">
-                            <span class="h-phrase-tag" style="flex: 0 0 200px; font-weight: 500; font-size: 0.95rem;">{{
-                                val[0] }}</span>
-                            <span class="h-phrase-text" style="font-size: 0.95rem; color: #334155;">{{ val[1] }}</span>
-                        </div>
-                        {% else %}
-                        <div class="h-phrase-row">{{ val or phrase }}</div>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p style="color: #94a3b8;">N/A</p>
-                    {% endif %}
+            <!-- 2. Composition Table -->
+            <section class="card">
+                <div class="card__header">
+                    <h2 class="card__title">🧪 Složení Směsi</h2>
+                    <span class="text-sm text-muted">{{ components|length }} složek</span>
                 </div>
-
-                <div class="detail-group">
-                    <label style="color: #64748b; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">H-věty
-                        (Životní Prostředí):</label>
-                    {% if mixture.final_environmental_hazards %}
-                    <div class="detail-list">
-                        {% for phrase in mixture.final_environmental_hazards.split(', ') %}
-                        {% set val = h_phrases_display.get(phrase.strip()) %}
-                        {% if val and val is iterable and val is not string %}
-                        <div class="h-phrase-row" style="gap: 4rem; border-bottom: 1px solid #f8fafc;">
-                            <span class="h-phrase-tag" style="flex: 0 0 200px; font-weight: 500; font-size: 0.95rem;">{{
-                                val[0] }}</span>
-                            <span class="h-phrase-text" style="font-size: 0.95rem; color: #334155;">{{ val[1] }}</span>
-                        </div>
-                        {% else %}
-                        <div class="h-phrase-row">{{ val or phrase }}</div>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p style="color: #94a3b8;">N/A</p>
-                    {% endif %}
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%">Látka</th>
+                                <th style="width: 15%" class="text-right">Koncentrace</th>
+                                <th style="width: 45%">Klasifikace (Složky)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for component in components %}
+                            <tr>
+                                <td class="font-medium">{{ component.substance_name }}</td>
+                                <td class="text-right font-bold">{{ "%.2f" | format(component.concentration) }} %</td>
+                                <td class="text-xs">
+                                    <div class="text-danger mb-1">{{ component.hazards if component.hazards }}</div>
+                                    <div class="text-success">{{ component.env_hazards if component.env_hazards }}</div>
+                                    {% if not component.hazards and not component.env_hazards %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="font-bold" style="background-color: var(--bg-tertiary);">
+                                <td>CELKEM</td>
+                                <td class="text-right">{{ "%.2f" | format(total_concentration) }} %</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="form-card mb-4">
-                <h3>🧪 Vypočtené Hodnoty {ATE}</h3>
-
-                {% if mixture.final_atemix_oral or mixture.final_atemix_dermal or mixture.final_atemix_inhalation %}
-                <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem;">
-
-                    <div
-                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
-                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Orální:</span>
-                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
-                            {% if mixture.final_atemix_oral is not none %}
-                            {{ "%.3f" | format(mixture.final_atemix_oral) }} mg/kg
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </span>
-                    </div>
-
-                    <div
-                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
-                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Dermální:</span>
-                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
-                            {% if mixture.final_atemix_dermal is not none %}
-                            {{ "%.3f" | format(mixture.final_atemix_dermal) }} mg/kg
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </span>
-                    </div>
-
-                    <div
-                        style="display: flex; align-items: baseline; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
-                        <span style="flex: 0 0 220px; font-weight: 600; color: var(--text-secondary);">Inhalační
-                            (Nejhorší cesta):</span>
-                        <span style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
-                            {% if mixture.final_atemix_inhalation is not none %}
-                            {{ "%.3f" | format(mixture.final_atemix_inhalation) }}
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </span>
-                    </div>
-
+                {% if total_concentration > 100.001 %}
+                <div class="p-4">
+                    <p class="alert alert-warning m-0 text-sm">⚠️ Celková koncentrace přesahuje 100 %. Zkontrolujte
+                        zadání.</p>
                 </div>
-                <small class="hint mt-3" style="display: block; color: var(--text-muted); margin-top: 1rem;">Hodnoty
-                    jsou použity pro klasifikaci akutní toxicity. Inhalační
-                    {ATE} je jednotná hodnota z nejhorší cesty (páry/prachy/mlhy/plyny).</small>
-                {% else %}
-                <p class="alert alert-info">Hodnoty ATE nebyly vypočteny (pravděpodobně chybí data
-                    ATE ve složkách).</p>
                 {% endif %}
-            </div>
-        </div>
-    </div>
+            </section>
 
-    {% if mixture.classification_log %}
-    <div class="form-card mb-4 print-visible">
-        <h3>📝 Podrobné Zdůvodnění Klasifikace</h3>
-        <p class="text-muted mb-3"><small>Tento protokol ukazuje přesný postup, jak byla klasifikace vypočtena podle
-                nařízení CLP.</small></p>
-
-        <div class="table-responsive">
-            <table class="data-list table-sm">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 25%;">Krok / Hazard</th>
-                        <th style="width: 50%;">Výpočet / Detail</th>
-                        <th style="width: 25%;">Výsledek</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in mixture.classification_log %}
-                    <tr>
-                        <td><strong>{{ entry.step }}</strong></td>
-                        <td><span class="text-monospace">{{ entry.detail }}</span></td>
-                        <td>
-                            {% if "Klasifikováno" in entry.result or "OK" in entry.result %}
-                            {% if "Klasifikováno" in entry.result %}
-                            <span class="badge badge-danger">{{ entry.result }}</span>
-                            {% else %}
-                            <span class="badge badge-info">{{ entry.result }}</span>
-                            {% endif %}
-                            {% else %}
-                            <span class="text-muted">{{ entry.result }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="form-card mb-4">
-        <h3>Skutečné Složení Směsi</h3>
-        <div class="table-responsive">
-            <table class="data-list">
-                <thead class="table-secondary">
-                    <tr>
-                        <th style="width: 25%;">Látka</th>
-                        <th style="width: 15%;">Koncentrace [%]</th>
-                        <th style="width: 30%;">H-věty (Zdraví)</th>
-                        <th style="width: 30%;">H-věty (Životní Prostředí)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for component in components %}
-                    <tr>
-                        <td>{{ component.substance_name }}</td>
-                        <td>{{ "%.2f" | format(component.concentration) }}</td>
-                        <td>{{ component.hazards if component.hazards else 'N/A' }}</td>
-                        <td>{{ component.env_hazards if component.env_hazards else 'N/A' }}</td>
-                    </tr>
-                    {% endfor %}
-                    <tr class="table-total">
-                        <td>**Celkem**</td>
-                        <td>**{{ "%.2f" | format(total_concentration) }} %**</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            {% if total_concentration > 100.001 %}
-            <p class="alert alert-warning mt-3">⚠️ **Upozornění:** Celková koncentrace přesahuje 100 % ({{ "%.2f" |
-                format(total_concentration) }} %). Zkontrolujte prosím složení směsi.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    {% if audit_logs %}
-    <div class="form-card mb-4 no-print">
-        <h3>📜 Historie změn</h3>
-        <div class="table-responsive">
-            <table class="data-list table-sm">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Čas</th>
-                        <th style="width: 20%;">Uživatel</th>
-                        <th style="width: 15%;">Akce</th>
-                        <th style="width: 45%;">Detaily změn</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in audit_logs %}
-                    <tr>
-                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</small></td>
-                        <td>{{ log.user.username if log.user else 'Systém' }}</td>
-                        <td>
-                            <span
-                                class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}"
-                                style="padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: white;">
-                                {{ log.action }}
-                            </span>
-                        </td>
-                        <td style="font-size: 0.85rem;">
-                            {% if log.action == 'UPDATE' and log.changes %}
-                            {% for field, diff in log.changes.items() %}
-                            <div class="mb-1">
-                                <code>{{ field }}</code>:
-                                <span class="text-muted">{{ diff.old or 'N/A' }}</span> ➡️
-                                <span class="text-success">{{ diff.new or 'N/A' }}</span>
-                            </div>
+            <!-- 3. Classification Log (Collapsible/Detailed) -->
+            {% if mixture.classification_log %}
+            <section class="card print-visible">
+                <div class="card__header">
+                    <h2 class="card__title">📜 Detailní Klasifikační Log</h2>
+                </div>
+                <!-- Simple log view -->
+                <div class="table-responsive">
+                    <table class="table-clean">
+                        <thead>
+                            <tr>
+                                <th>Krok</th>
+                                <th>Detail</th>
+                                <th>Výsledek</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in mixture.classification_log %}
+                            <tr>
+                                <td class="text-xs font-bold">{{ entry.step }}</td>
+                                <td class="text-xs font-mono text-muted">{{ entry.detail }}</td>
+                                <td>
+                                    {% if "Klasifikováno" in entry.result %}
+                                    <span class="badge badge-danger text-xs px-2 py-1">{{ entry.result }}</span>
+                                    {% elif "OK" in entry.result %}
+                                    <span class="badge badge-info text-xs px-2 py-1">{{ entry.result }}</span>
+                                    {% else %}
+                                    <span class="text-xs text-muted">{{ entry.result }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                             {% endfor %}
-                            {% else %}
-                            {{ log.action.capitalize() }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-    <div class="d-flex justify-content-between mt-4 no-print">
-        <div>
-            <a href="{{ url_for('mixtures.index') }}" class="button">Zpět na seznam směsí</a>
-            <button onclick="window.print()" class="button button-secondary ml-2">🖨️ Tisk / Uložit jako PDF</button>
-        </div>
-        <a href="{{ url_for('mixtures.edit', mixture_id=mixture.id) }}" class="button button-primary">Upravit složení
-            směsi</a>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+
+        </main>
+
+        <!-- Right Column: Context & Metadata -->
+        <aside class="col-sidebar">
+
+            <!-- Metadata Card -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title text-base">ℹ️ Informace</h2>
+                </div>
+                <div class="card__body p-4">
+                    <div class="kv-list">
+                        <div class="kv-item">
+                            <span class="kv-label">ID Směsi</span>
+                            <span class="kv-value font-mono">{{ mixture.id }}</span>
+                        </div>
+                        <div class="kv-item">
+                            <span class="kv-label">Vytvořeno</span>
+                            <span class="kv-value">{{ mixture.created_date.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                        <div class="kv-item">
+                            <span class="kv-label">Poslední úprava</span>
+                            <span class="kv-value">{{ mixture.created_date.strftime('%H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATE Values Card -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title text-base">Ekotox. Hodnoty (ATE)</h2>
+                </div>
+                <div class="card__body p-4">
+                    {% if mixture.final_atemix_oral or mixture.final_atemix_dermal or mixture.final_atemix_inhalation %}
+                    <div class="kv-list">
+                        <div class="kv-item">
+                            <span class="kv-label">Orální</span>
+                            <span class="kv-value">
+                                {% if mixture.final_atemix_oral %}
+                                {{ "%.0f" | format(mixture.final_atemix_oral) }} <small class="text-muted">mg/kg</small>
+                                {% else %} <span class="text-muted">-</span> {% endif %}
+                            </span>
+                        </div>
+                        <div class="kv-item">
+                            <span class="kv-label">Dermální</span>
+                            <span class="kv-value">
+                                {% if mixture.final_atemix_dermal %}
+                                {{ "%.0f" | format(mixture.final_atemix_dermal) }} <small
+                                    class="text-muted">mg/kg</small>
+                                {% else %} <span class="text-muted">-</span> {% endif %}
+                            </span>
+                        </div>
+                        <div class="kv-item">
+                            <span class="kv-label">Inhalační</span>
+                            <span class="kv-value">
+                                {% if mixture.final_atemix_inhalation %}
+                                {{ "%.2f" | format(mixture.final_atemix_inhalation) }} <small
+                                    class="text-muted">mg/l</small>
+                                {% else %} <span class="text-muted">-</span> {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-xs text-muted">
+                        * Vypočtené odhady akutní toxicity směsi (ATEmix).
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-muted m-0">Nejsou k dispozici data pro výpočet ATE.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- History / Audit Mini-Log -->
+            {% if audit_logs %}
+            <div class="card no-print">
+                <div class="card__header">
+                    <h2 class="card__title text-base">Historie</h2>
+                </div>
+                <div class="card__body p-0">
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <table class="table-clean" style="font-size: 0.75rem;">
+                            <tbody>
+                                {% for log in audit_logs[:5] %}
+                                <tr>
+                                    <td class="text-muted">{{ log.timestamp.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        <strong>{{ log.user.username }}</strong>: {{ log.action }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card__footer text-center">
+                    <a href="#" class="text-xs text-primary" style="text-decoration: none;">Zobrazit celý log</a>
+                </div>
+            </div>
+            {% endif %}
+
+        </aside>
+
     </div>
 
-    <div class="only-print mt-5 text-center" style="border-top: 1px solid #e2e8f0; padding-top: 2rem;">
-        <p style="font-size: 0.85rem; color: #64748b;">Tento dokument byl automaticky vygenerován aplikací CLP
-            Calculator na základě zadaných dat o složení směsi a nebezpečných vlastnostech jejích složek. Výpočet
-            odpovídá požadavkům nařízení (ES) č. 1272/2008 (CLP) v aktuálním znění.</p>
+    <!-- Print Footer -->
+    <div class="only-print mt-8 text-center text-sm text-muted">
+        <p>Dokument vygenerován systémem CLP Calculator. Odpovídá nařízení (ES) č. 1272/2008.</p>
     </div>
-
 </div>
 {% endblock %}

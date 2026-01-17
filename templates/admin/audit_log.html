@@ -24,7 +24,7 @@
                 <tbody>
                     {% for log in logs %}
                     <tr>
-                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                        <td><small>{{ log.timestamp.strftime('%d.%m.%Y') }}</small></td>
                         <td><strong>{{ log.user.username if log.user else 'Systém/Neznámý' }}</strong></td>
                         <td>
                             <span

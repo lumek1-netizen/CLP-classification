@@ -1,371 +1,587 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-
-    {% if substance and substance.id %}
-    <h1>📝 Editovat Látku: **{{ substance.name }}**</h1>
-    {% else %}
-    <h1>➕ Přidat Novou Látku</h1>
-    {% endif %}
-
-    <hr>
-
-    <form method="POST"
-        action="{{ url_for('substances.edit', substance_id=substance.id) if substance and substance.id else url_for('substances.create') }}">
-        {{ form.hidden_tag() }}
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-
-        <div class="form-card mb-4">
-            <h3>🏷️ Základní Identifikace</h3>
-
-            <div class="group-grid">
-                <div class="form-group">
-                    <label for="name">Název Látky <span class="text-danger">*</span></label>
-                    {{ form.name(id="name", placeholder="Např. Ethanol", required=True) }}
-                    {% for error in form.name.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="cas_number">CAS Číslo</label>
-                    {{ form.cas_number(id="cas_number", placeholder="Např. 64-17-5") }}
-                    {% for error in form.cas_number.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
+<!-- Page Header (Sticky) -->
+<div class="page-header">
+    <div class="page-header__content">
+        <div class="page-title-group">
+            <div class="breadcrumbs">
+                <a href="{{ url_for('substances.index') }}" class="text-muted" style="text-decoration: none;">Látky</a>
+                <span class="text-secondary">/</span>
+                <span>{{ 'Editace' if substance and substance.id else 'Nová' }}</span>
             </div>
-
-            <div class="form-group mt-3">
-                <label for="ghs_codes">GHS Kódy (Piktogramy)</label>
-                {{ form.ghs_codes(id="ghs_codes", placeholder="Např. GHS02, GHS07 (oddělte čárkou)") }}
-                {% for error in form.ghs_codes.errors %}
-                <small class="text-danger">{{ error }}</small>
-                {% endfor %}
-            </div>
-            <small class="hint mt-2">Zadejte GHS kódy (piktogramy) oddělené čárkou, např. GHS02, GHS07.</small>
-        </div>
-
-
-        <div class="form-card mb-4">
-            <h3>⚕️ H-Věty (Zdraví Nebezpečí)</h3>
-            <div class="checkbox-group">
-                {% for code, description in health_h_phrases.items() %}
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="health_h_phrases" value="{{ code }}"
-                        id="health_{{ code }}" {% if code in selected_health_h_phrases %}checked{% endif %}>
-                    <label class="form-check-label" for="health_{{ code }}">
-                        <strong>{{ code }}</strong>: {{ description }}
-                    </label>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="form-card mb-4">
-            <h3>🌳 H-Věty (Životní Prostředí)</h3>
-            <div class="checkbox-group">
-                {% for code, description in env_h_phrases.items() %}
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="env_h_phrases" value="{{ code }}"
-                        id="env_{{ code }}" {% if code in selected_env_h_phrases %}checked{% endif %}>
-                    <label class="form-check-label" for="env_{{ code }}">
-                        <strong>{{ code }}</strong>: {{ description }}
-                    </label>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="form-card mb-4">
-            <h3>🧪 Akutní Toxicita (ATE Hodnoty - mg/kg nebo mg/l)</h3>
-            <div class="group-grid">
-                <div class="form-group">
-                    <label for="ate_oral" class="label-with-tooltip">
-                        ATE Orální (mg/kg)
-                        <span class="tooltip-wrapper">
-                            <span class="tooltip-icon">?</span>
-                            <span class="tooltip-content">
-                                Akutní toxicita při požití. Hodnota LD50 v mg/kg tělesné hmotnosti. Nižší hodnota =
-                                vyšší toxicita.
-                            </span>
-                        </span>
-                    </label>
-                    {{ form.ate_oral(id="ate_oral", step="0.01", min="0", placeholder="Např. 300") }}
-                    {% for error in form.ate_oral.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="ate_dermal" class="label-with-tooltip">
-                        ATE Dermální (mg/kg)
-                        <span class="tooltip-wrapper">
-                            <span class="tooltip-icon">?</span>
-                            <span class="tooltip-content">
-                                Akutní toxicita při styku s kůží. Hodnota LD50 v mg/kg tělesné hmotnosti.
-                            </span>
-                        </span>
-                    </label>
-                    {{ form.ate_dermal(id="ate_dermal", step="0.01", min="0", placeholder="Např. 1100") }}
-                    {% for error in form.ate_dermal.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="ate_inhalation_vapours">ATE Inhalační - Páry (mg/l)</label>
-                    {{ form.ate_inhalation_vapours(id="ate_inhalation_vapours", step="0.01", min="0", placeholder="Např.
-                    15.0") }}
-                    {% for error in form.ate_inhalation_vapours.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="ate_inhalation_dusts_mists">ATE Inhalační - Prach/Mlha (mg/l)</label>
-                    {{ form.ate_inhalation_dusts_mists(id="ate_inhalation_dusts_mists", step="0.01", min="0",
-                    placeholder="Např. 0.8") }}
-                    {% for error in form.ate_inhalation_dusts_mists.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="ate_inhalation_gases">ATE Inhalační - Plyny (ppm)</label>
-                    {{ form.ate_inhalation_gases(id="ate_inhalation_gases", step="1", min="0", placeholder="Např. 4500")
-                    }}
-                    {% for error in form.ate_inhalation_gases.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-            </div>
-            <small class="hint mt-2">Používejte pouze čisté číselné hodnoty. Desetinná místa oddělujte tečkou. Nechte
-                prázdné, pokud není relevantní.</small>
-        </div>
-
-
-        <div class="form-card mb-4">
-            <h3>
-                🧬 M-Faktor (M-Factor)
-                <span class="tooltip-wrapper">
-                    <span class="tooltip-icon">?</span>
-                    <span class="tooltip-content">
-                        Multiplikační faktor pro nebezpečnost vodních organismů. Používá se pro látky s vysokou
-                        toxicitou (Aquatic Acute 1 nebo Chronic 1).
-                    </span>
-                </span>
-            </h3>
-            <div class="group-grid">
-                <div class="form-group">
-                    <label for="m_factor_acute" class="label-with-tooltip">
-                        M-Faktor Akutní (Acute 1)
-                        <span class="tooltip-wrapper">
-                            <span class="tooltip-icon">?</span>
-                            <span class="tooltip-content">
-                                Pro látky s H400. Hodnoty: 1, 10, 100, 1000. Vyšší hodnota = větší multiplikace
-                                koncentrace při výpočtu.
-                            </span>
-                        </span>
-                    </label>
-                    {{ form.m_factor_acute(id="m_factor_acute", step="1", min="1", placeholder="Např. 10") }}
-                    {% for error in form.m_factor_acute.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label for="m_factor_chronic" class="label-with-tooltip">
-                        M-Faktor Chronický (Chronic 1)
-                        <span class="tooltip-wrapper">
-                            <span class="tooltip-icon">?</span>
-                            <span class="tooltip-content">
-                                Pro látky s H410. Hodnoty: 1, 10, 100, 1000. Vyšší hodnota = větší multiplikace
-                                koncentrace při výpočtu.
-                            </span>
-                        </span>
-                    </label>
-                    {{ form.m_factor_chronic(id="m_factor_chronic", step="1", min="1", placeholder="Např. 10") }}
-                    {% for error in form.m_factor_chronic.errors %}
-                    <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                </div>
-            </div>
-            <small class="hint mt-2">Zadejte celočíselnou hodnotu (např. 1, 10, 100). Standardní hodnota je 1.</small>
-        </div>
-
-
-
-        <div class="form-card mb-4">
-            <h3>🆕 Rozšířené Požadavky 2026 (ED, PBT, Laktace)</h3>
-            <div class="group-grid">
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.is_lact(id="is_lact") }} {{ form.is_lact.label.text }}
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.has_ozone(id="has_ozone") }} {{ form.has_ozone.label.text }}
-                    </label>
-                </div>
-            </div>
-
-            <div class="group-grid mt-3">
-                <div class="form-group">
-                    <label for="ed_hh_cat">{{ form.ed_hh_cat.label.text }}</label>
-                    {{ form.ed_hh_cat(id="ed_hh_cat", class="form-control") }}
-                </div>
-                <div class="form-group">
-                    <label for="ed_env_cat">{{ form.ed_env_cat.label.text }}</label>
-                    {{ form.ed_env_cat(id="ed_env_cat", class="form-control") }}
-                </div>
-            </div>
-
-            <div class="group-grid mt-3">
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.is_pbt(id="is_pbt") }} {{ form.is_pbt.label.text }}
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.is_vpvb(id="is_vpvb") }} {{ form.is_vpvb.label.text }}
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.is_pmt(id="is_pmt") }} {{ form.is_pmt.label.text }}
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="form-check-label d-flex align-items-center" style="gap: 10px;">
-                        {{ form.is_vpvm(id="is_vpvm") }} {{ form.is_vpvm.label.text }}
-                    </label>
-                </div>
-            </div>
-            <small class="hint mt-2">Dle nařízení 2023/707 a legislativy platné k roku 2026.</small>
-        </div>
-
-        <div class="form-card mb-4">
-            <h3>
-                📑 Specifické Koncentrační Limity (SCLs)
-                <span class="tooltip-wrapper">
-                    <span class="tooltip-icon">?</span>
-                    <span class="tooltip-content">
-                        Specifické limity pro klasifikaci směsi. Používají se místo standardních limitů, pokud je látka
-                        zvláště nebezpečná nebo naopak méně nebezpečná.
-                    </span>
-                </span>
-            </h3>
-            <div class="form-group" id="scl_form_group">
-                <label for="scl_data">SCLs (např. C ≥ 5% nebo 5% ≤ C < 25%)</label>
-                        <div id="scl_container" class="mt-2">
-                        </div>
-                        <button type="button" id="add_scl_button" class="button button-secondary button-small mt-2">➕
-                            Přidat SCL</button>
-
-                        {{ form.scl_limits(id="scl_limits") }}
-
-                        <small class="hint mt-2">Klikněte na "Přidat SCL" pro definování specifických limitů (podporuje
-                            operátory >=, >, <=, < i rozmezí).</small>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-between mt-4">
-            <a href="{{ url_for('substances.index') }}" class="button">Zpět na seznam látek</a>
-
-            <button type="submit" class="button button-primary">
+            <h1 class="page-title">
                 {% if substance and substance.id %}
-                💾 Uložit Změny Látky
+                Editovat: <span class="text-primary">{{ substance.name }}</span>
                 {% else %}
-                ✅ Vytvořit Látku
+                Nová Látka
+                {% endif %}
+            </h1>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{{ url_for('substances.index') }}" class="button button-secondary">Zrušit</a>
+            <button type="submit" form="substance-form" class="button button-primary">
+                {% if substance and substance.id %}
+                💾 Uložit změny
+                {% else %}
+                ✅ Vytvořit látku
                 {% endif %}
             </button>
         </div>
+    </div>
+</div>
+
+<div class="container container-narrow"> <!-- narrow container for better form readability -->
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-6">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST"
+        action="{{ url_for('substances.edit', substance_id=substance.id) if substance and substance.id else url_for('substances.create') }}"
+        id="substance-form">
+        {{ form.hidden_tag() }}
+
+        <!-- 1. Základní Identifikace -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">🏷️ Základní Identifikace</h2>
+            </div>
+            <div class="card__body">
+                <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                    <div class="form-group">
+                        <label for="name" class="form-label">Název Látky <span class="text-danger">*</span></label>
+                        {{ form.name(id="name", class="form-control", placeholder="Např. Ethanol") }}
+                        {% for error in form.name.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cas_number" class="form-label">CAS Číslo</label>
+                        {{ form.cas_number(id="cas_number", class="form-control", placeholder="Např. 64-17-5") }}
+                        {% for error in form.cas_number.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <label class="form-label mb-2">GHS Kódy (Piktogramy)</label>
+                    {{ form.ghs_codes(id="ghs_codes", type="hidden") }}
+
+                    <div id="ghs_selection_grid" class="d-grid gap-3"
+                        style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
+                        <!-- JS filled -->
+                    </div>
+
+                    {% for error in form.ghs_codes.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. H-Věty (Zdraví) -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">⚕️ H-Věty (Zdraví)</h2>
+            </div>
+            <div class="card__body">
+                <div class="checkbox-group" style="column-count: 2; column-gap: 2rem;">
+                    {% for code, description in health_h_phrases.items() %}
+                    <div class="form-check break-inside-avoid mb-2">
+                        <input class="form-check-input mt-1" type="checkbox" name="health_h_phrases" value="{{ code }}"
+                            id="health_{{ code }}" {% if code in selected_health_h_phrases %}checked{% endif %}>
+                        <label class="form-check-label text-sm leading-tight ml-2" for="health_{{ code }}">
+                            <strong class="text-primary">{{ code }}</strong>: {{ description }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <hr class="border-color my-4">
+                <h3 class="text-sm font-bold mb-3 text-secondary">Další zdravotní rizika</h3>
+                <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-check d-flex align-items-center">
+                        {{ form.is_lact(id="is_lact", class="form-check-input mt-0") }}
+                        <label for="is_lact" class="form-check-label ml-2">Laktace (H362)</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="ed_hh_cat" class="form-label text-sm">{{ form.ed_hh_cat.label.text }}</label>
+                        {{ form.ed_hh_cat(id="ed_hh_cat", class="form-control form-control-sm") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. H-Věty (Prostředí) -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">🌳 H-Věty (Životní Prostředí)</h2>
+            </div>
+            <div class="card__body">
+                <div class="checkbox-group">
+                    {% for code, description in env_h_phrases.items() %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input mt-1" type="checkbox" name="env_h_phrases" value="{{ code }}"
+                            id="env_{{ code }}" {% if code in selected_env_h_phrases %}checked{% endif %}>
+                        <label class="form-check-label text-sm ml-2" for="env_{{ code }}">
+                            <strong class="text-success">{{ code }}</strong>: {{ description }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <hr class="border-color my-4">
+                <h3 class="text-sm font-bold mb-3 text-secondary">Další environmentální rizika</h3>
+                <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-check d-flex align-items-center">
+                        {{ form.has_ozone(id="has_ozone", class="form-check-input mt-0") }}
+                        <label for="has_ozone" class="form-check-label ml-2">Ozonová vrstva (H420)</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="ed_env_cat" class="form-label text-sm">{{ form.ed_env_cat.label.text }}</label>
+                        {{ form.ed_env_cat(id="ed_env_cat", class="form-control form-control-sm") }}
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-3" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
+                    <div class="form-check">
+                        {{ form.is_pbt(id="is_pbt", class="form-check-input") }}
+                        <label for="is_pbt" class="ml-2">PBT <sup class="info-tooltip"
+                                title="Perzistentní, bioakumulativní a toxická látka">ⓘ</sup></label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_vpvb(id="is_vpvb", class="form-check-input") }}
+                        <label for="is_vpvb" class="ml-2">vPvB <sup class="info-tooltip"
+                                title="Vysoce perzistentní a vysoce bioakumulativní látka">ⓘ</sup></label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_pmt(id="is_pmt", class="form-check-input") }}
+                        <label for="is_pmt" class="ml-2">PMT <sup class="info-tooltip"
+                                title="Perzistentní, mobilní a toxická látka">ⓘ</sup></label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_vpvm(id="is_vpvm", class="form-check-input") }}
+                        <label for="is_vpvm" class="ml-2">vPvM <sup class="info-tooltip"
+                                title="Vysoce perzistentní a vysoce mobilní látka">ⓘ</sup></label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_svhc(id="is_svhc", class="form-check-input") }}
+                        <label for="is_svhc" class="ml-2 fw-bold text-danger">SVHC <sup class="info-tooltip"
+                                style="color:red;"
+                                title="Látka vzbuzující mimořádné obavy (Substance of Very High Concern)">ⓘ</sup></label>
+                    </div>
+                </div>
+
+                <hr class="border-color my-4">
+                <h3 class="text-sm font-bold mb-3 text-secondary">Legislativní Status (REACH)</h3>
+                <div class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+                    <div class="form-check">
+                        {{ form.is_reach_annex_xiv(id="is_reach_annex_xiv", class="form-check-input") }}
+                        <label for="is_reach_annex_xiv" class="ml-2">REACH Příloha XIV <sup class="info-tooltip"
+                                title="Seznam látek podléhajících povolení">ⓘ</sup></label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_reach_annex_xvii(id="is_reach_annex_xvii", class="form-check-input") }}
+                        <label for="is_reach_annex_xvii" class="ml-2">REACH Příloha XVII <sup class="info-tooltip"
+                                title="Omezení výroby, uvádění na trh a používání některých nebezpečných látek">ⓘ</sup></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1.1 Molecular Weight (New) -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">⚖️ Fyzikální vlastnosti</h2>
+            </div>
+            <div class="card__body">
+                <div class="form-group">
+                    <label for="molecular_weight" class="form-label label-with-tooltip">
+                        Molekulová hmotnost (g/mol)
+                        <span class="text-secondary cursor-help"
+                            title="Nutné pro přepočet jednotek u plynů (mg/l <-> ppm)">ⓘ</span>
+                    </label>
+                    {{ form.molecular_weight(id="molecular_weight", class="form-control", step="0.01", min="0",
+                    placeholder="Např. 44.01") }}
+                    {% for error in form.molecular_weight.errors %}
+                    <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Akutní Toxicita (ATE) -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">🧪 Akutní Toxicita (ATE Hodnoty)</h2>
+            </div>
+            <div class="card__body">
+                <p class="text-muted text-sm mb-4">Zadávejte hodnoty pro výpočet klasifikace směsí. Nechte prázdné,
+                    pokud není relevantní.</p>
+
+                <div class="d-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <!-- Oral -->
+                    <div class="form-group">
+                        <label for="ate_oral" class="form-label label-with-tooltip" style="min-height: 2rem;">
+                            Orální (mg/kg)
+                            <span class="text-secondary cursor-help"
+                                title="Hodnota LD50 v mg/kg tělesné hmotnosti">ⓘ</span>
+                        </label>
+                        {{ form.ate_oral(id="ate_oral", class="form-control", step="0.01", min="0", placeholder="Např.
+                        300") }}
+                        {% for error in form.ate_oral.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Dermal -->
+                    <div class="form-group">
+                        <label for="ate_dermal" class="form-label label-with-tooltip" style="min-height: 2rem;">
+                            Dermální (mg/kg)
+                            <span class="text-secondary cursor-help"
+                                title="Hodnota LD50 v mg/kg tělesné hmotnosti">ⓘ</span>
+                        </label>
+                        {{ form.ate_dermal(id="ate_dermal", class="form-control", step="0.01", min="0",
+                        placeholder="Např. 1100") }}
+                        {% for error in form.ate_dermal.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Inhalation Vapours -->
+                    <div class="form-group">
+                        <label for="ate_inhalation_vapours" class="form-label" style="min-height: 2rem;">Inhalační -
+                            Páry (mg/l)</label>
+                        {{ form.ate_inhalation_vapours(id="ate_inhalation_vapours", class="form-control", step="0.01",
+                        min="0", placeholder="Např. 15.0") }}
+                        <div id="warn_vapours" class="text-warning text-xs mt-1" style="display:none;">⚠️ Vysoká hodnota
+                            (>100 mg/l)</div>
+                        {% for error in form.ate_inhalation_vapours.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Inhalation Dusts -->
+                    <div class="form-group">
+                        <label for="ate_inhalation_dusts_mists" class="form-label" style="min-height: 2rem;">Inhalační -
+                            Prach/Mlha (mg/l)</label>
+                        {{ form.ate_inhalation_dusts_mists(id="ate_inhalation_dusts_mists", class="form-control",
+                        step="0.01", min="0", placeholder="Např. 0.8") }}
+                        <div id="warn_dusts" class="text-warning text-xs mt-1" style="display:none;">⚠️ Vysoká hodnota
+                            (>100 mg/l)</div>
+                        {% for error in form.ate_inhalation_dusts_mists.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Inhalation Gases (Enhanced) -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="ate_inhalation_gases" class="form-label mb-0">Inhalační - Plyny</label>
+
+                            <!-- Unit Toggle -->
+                            <div class="unit-toggle d-flex bg-secondary rounded p-1" style="width: fit-content;">
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="gas_unit" id="unit_ppm"
+                                        value="ppm" checked>
+                                    <label class="form-check-label text-xs fw-bold px-2" for="unit_ppm"
+                                        style="cursor:pointer;">ppmV</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="gas_unit" id="unit_mgl"
+                                        value="mgl">
+                                    <label class="form-check-label text-xs fw-bold px-2" for="unit_mgl"
+                                        style="cursor:pointer;">mg/l</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            {{ form.ate_inhalation_gases(id="ate_inhalation_gases", class="form-control", step="1",
+                            min="0", placeholder="Např. 4500") }}
+                            <span class="input-group-text text-sm" id="gas_unit_display">ppmV</span>
+                        </div>
+
+                        <div id="mgl_conversion_info" class="text-info text-xs mt-1" style="display:none;">
+                            ℹ️ Bude přepočteno na ppm: <code>ppm = (mg/l * 24450) / MW</code>
+                        </div>
+                        <div id="mw_missing_warning" class="text-danger text-xs mt-1" style="display:none;">
+                            ❗ Pro zadání v mg/l musíte vyplnit Molekulovou hmotnost!
+                        </div>
+
+                        <div id="warn_gases" class="text-warning text-xs mt-1" style="display:none;">⚠️ Nízká hodnota (
+                            <100 ppm)</div>
+                                {% for error in form.ate_inhalation_gases.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. M-Faktor -->
+            <div class="card mb-6">
+                <div class="card__header">
+                    <h2 class="card__title">🧬 M-Faktor (M-Factor)</h2>
+                </div>
+                <div class="card__body">
+                    <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                        <div class="form-group">
+                            <label for="m_factor_acute" class="form-label label-with-tooltip">
+                                M-Faktor Akutní (Acute 1)
+                                <span class="text-secondary cursor-help" title="Hodnoty: 1, 10, 100, 1000...">ⓘ</span>
+                            </label>
+                            {{ form.m_factor_acute(id="m_factor_acute", class="form-control", step="1", min="1",
+                            placeholder="Standard: 1") }}
+                            {% for error in form.m_factor_acute.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="m_factor_chronic" class="form-label label-with-tooltip">
+                                M-Faktor Chronický (Chronic 1)
+                                <span class="text-secondary cursor-help" title="Hodnoty: 1, 10, 100, 1000...">ⓘ</span>
+                            </label>
+                            {{ form.m_factor_chronic(id="m_factor_chronic", class="form-control", step="1", min="1",
+                            placeholder="Standard: 1") }}
+                            {% for error in form.m_factor_chronic.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- 7. SCL Limits -->
+            <div class="card mb-6">
+                <div class="card__header">
+                    <h2 class="card__title">📑 Specifické Koncentrační Limity (SCLs)</h2>
+                </div>
+                <div class="card__body">
+                    <div class="form-group" id="scl_form_group">
+                        <div id="scl_container" class="d-grid gap-3 mb-3">
+                            <!-- SCL Rows -->
+                        </div>
+
+                        <button type="button" id="add_scl_button" class="button button-secondary button-small">
+                            ➕ Přidat SCL
+                        </button>
+
+                        {{ form.scl_limits(id="scl_limits", type="hidden") }}
+
+                        <p class="text-muted text-xs mt-2">Definujte specifické limity pro klasifikaci směsí.</p>
+                    </div>
+                </div>
+            </div>
 
     </form>
 
+    <!-- 8. Audit Log -->
     {% if audit_logs %}
-    <div class="form-card mt-5 mb-4">
-        <h3>📜 Historie změn</h3>
-        <div class="table-responsive">
-            <table class="data-list table-sm">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Čas</th>
-                        <th style="width: 20%;">Uživatel</th>
-                        <th style="width: 15%;">Akce</th>
-                        <th style="width: 45%;">Detaily změn</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in audit_logs %}
-                    <tr>
-                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</small></td>
-                        <td>{{ log.user.username if log.user else 'Systém' }}</td>
-                        <td>
-                            <span
-                                class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}"
-                                style="padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: white;">
-                                {{ log.action }}
-                            </span>
-                        </td>
-                        <td style="font-size: 0.85rem;">
-                            {% if log.action == 'UPDATE' and log.changes %}
-                            {% for field, diff in log.changes.items() %}
-                            <div class="mb-1">
-                                <code>{{ field }}</code>:
-                                <span class="text-muted">{{ diff.old or 'N/A' }}</span> ➡️
-                                <span class="text-success">{{ diff.new or 'N/A' }}</span>
-                            </div>
-                            {% endfor %}
-                            {% else %}
-                            {{ log.action.capitalize() }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="card mt-8">
+        <div class="card__header">
+            <h2 class="card__title">📜 Historie změn</h2>
+        </div>
+        <div class="card__body p-0">
+            <div class="table-responsive">
+                <table class="table-clean text-sm">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Čas</th>
+                            <th style="width: 20%;">Uživatel</th>
+                            <th style="width: 15%;">Akce</th>
+                            <th style="width: 45%;">Detaily</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in audit_logs %}
+                        <tr>
+                            <td class="text-muted">{{ log.timestamp.strftime('%d.%m.%Y') }}</td>
+                            <td class="font-medium">{{ log.user.username if log.user else 'Systém' }}</td>
+                            <td>
+                                <span
+                                    class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ log.action }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.action == 'UPDATE' and log.changes %}
+                                {% for field, diff in log.changes.items() %}
+                                <div class="mb-1">
+                                    <code class="text-xs bg-secondary rounded px-1">{{ field }}</code>:
+                                    <span class="text-muted strike">{{ diff.old or '—' }}</span> ➡️
+                                    <span class="text-success">{{ diff.new or '—' }}</span>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                {{ log.action.capitalize() }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endif %}
+
 </div>
 
-<script>
-    // Získání dat z Jinja kontextu
-    const SCL_HAZARD_CATEGORIES = {{ scl_hazard_categories | tojson | safe }};
+<!-- CSS for GHS Grid Selection -->
+<style>
+    .ghs-item {
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--card-bg);
+    }
 
+    .ghs-item:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .ghs-item.selected {
+        border-color: var(--primary-color);
+        background-color: color-mix(in srgb, var(--primary-color), white 90%);
+        box-shadow: 0 0 0 1px var(--primary-color);
+    }
+
+    .ghs-item img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        margin-bottom: 0.25rem;
+    }
+
+    .ghs-item .ghs-code {
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .ghs-item .ghs-desc {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.1;
+    }
+
+    .scl-row {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        background-color: var(--bg-secondary);
+        padding: 1rem;
+    }
+</style>
+
+<script>
+    // --- GHS Selection Logic ---
+    const GHS_DATA = [
+        { code: 'GHS01', desc: 'Výbušné', img: '{{ url_for("static", filename="GHS_Symbols/GHS01.gif") }}' },
+        { code: 'GHS02', desc: 'Hořlavé', img: '{{ url_for("static", filename="GHS_Symbols/GHS02.gif") }}' },
+        { code: 'GHS03', desc: 'Oxidující', img: '{{ url_for("static", filename="GHS_Symbols/GHS03.gif") }}' },
+        { code: 'GHS04', desc: 'Plyny pod tlakem', img: '{{ url_for("static", filename="GHS_Symbols/GHS04.gif") }}' },
+        { code: 'GHS05', desc: 'Korozivní', img: '{{ url_for("static", filename="GHS_Symbols/GHS05.gif") }}' },
+        { code: 'GHS06', desc: 'Toxické', img: '{{ url_for("static", filename="GHS_Symbols/GHS06.gif") }}' },
+        { code: 'GHS07', desc: 'Dráždivé', img: '{{ url_for("static", filename="GHS_Symbols/GHS07.gif") }}' },
+        { code: 'GHS08', desc: 'Nebezpečné pro zdraví', img: '{{ url_for("static", filename="GHS_Symbols/GHS08.gif") }}' },
+        { code: 'GHS09', desc: 'Nebezpečné pro žívotní prostředí', img: '{{ url_for("static", filename="GHS_Symbols/GHS09.gif") }}' }
+    ];
+
+    const ghsInput = document.getElementById('ghs_codes');
+    const ghsGrid = document.getElementById('ghs_selection_grid');
+
+    function renderGhsGrid() {
+        const currentValues = ghsInput.value.split(',').map(s => s.trim()).filter(s => s);
+
+        ghsGrid.innerHTML = '';
+        GHS_DATA.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'ghs-item';
+            if (currentValues.includes(item.code)) {
+                div.classList.add('selected');
+            }
+
+            const img = document.createElement('img');
+            // Basic error handling for images
+            img.onerror = function () { this.style.display = 'none'; };
+            img.src = item.img;
+            img.alt = item.code;
+            div.appendChild(img);
+
+            const codeSpan = document.createElement('span');
+            codeSpan.className = 'ghs-code';
+            codeSpan.textContent = item.code;
+            div.appendChild(codeSpan);
+
+            const descSpan = document.createElement('div');
+            descSpan.className = 'ghs-desc';
+            descSpan.textContent = item.desc;
+            div.appendChild(descSpan);
+
+            div.addEventListener('click', () => {
+                div.classList.toggle('selected');
+                updateGhsInput();
+            });
+
+            ghsGrid.appendChild(div);
+        });
+    }
+
+    function updateGhsInput() {
+        const selectedItems = [];
+        const items = ghsGrid.querySelectorAll('.ghs-item.selected');
+        items.forEach(item => {
+            const code = item.querySelector('.ghs-code').textContent;
+            selectedItems.push(code);
+        });
+        ghsInput.value = selectedItems.join(', ');
+    }
+
+    if (ghsGrid && ghsInput) {
+        renderGhsGrid();
+    }
+
+    // --- SCL Logic (Preserved) ---
+    const SCL_HAZARD_CATEGORIES = {{ scl_hazard_categories | tojson | safe }};
     const sclContainer = document.getElementById('scl_container');
     const addSclButton = document.getElementById('add_scl_button');
-    const sclDataInput = document.getElementById('scl_limits'); // Skryté pole pro finální string
+    const sclDataInput = document.getElementById('scl_limits');
 
-    // 1. Funkce pro serializaci SCL formulářů na finální string
     function serializeScls() {
         const rows = sclContainer.querySelectorAll('.scl-row');
         const scls = [];
-
         rows.forEach(row => {
             const hazard = row.querySelector('.scl-hazard').value;
             if (!hazard) return;
-
             const conds = [];
-
-            // První podmínka
             const op1 = row.querySelector('.scl-op1').value;
             const val1 = row.querySelector('.scl-val1').value;
             if (op1 && val1 && !isNaN(parseFloat(val1))) {
                 conds.push(`${op1} ${parseFloat(val1)}`);
             }
-
-            // Druhá podmínka (pokud je aktivní rozmezí)
             const rangeCheck = row.querySelector('.scl-range-check');
             if (rangeCheck && rangeCheck.checked) {
                 const op2 = row.querySelector('.scl-op2').value;
@@ -374,24 +590,18 @@
                     conds.push(`${op2} ${parseFloat(val2)}`);
                 }
             }
-
             if (conds.length > 0) {
-                // Sestavíme formát: Hazard: op1 val1; op2 val2
                 scls.push(`${hazard}: ${conds.join('; ')}`);
             }
         });
-
-        // Uložení do skrytého pole pro odeslání do Flasku
         sclDataInput.value = scls.join(', ');
     }
 
-    // Pomocná funkce pro vytvoření selectu operátoru
     function createOperatorSelect(className, defaultValue = '>=') {
         const select = document.createElement('select');
-        select.className = `${className} form-control`;
-        select.style.minWidth = '60px';
-        const ops = ['>=', '>', '<=', '<'];
-        ops.forEach(op => {
+        select.className = `${className} form-control form-select-sm`;
+        select.style.maxWidth = '70px';
+        ['>=', '>', '<=', '<'].forEach(op => {
             const opt = document.createElement('option');
             opt.value = op;
             opt.textContent = op;
@@ -401,24 +611,22 @@
         return select;
     }
 
-    // 2. Funkce pro vytvoření jednoho řádku SCL
     function createSclRow(defaultHazard = '', cond1 = { op: '>=', val: '' }, cond2 = null) {
         const div = document.createElement('div');
-        div.className = 'scl-row card p-3 mb-3';
-        div.style.border = '1px solid #ddd';
-        div.style.backgroundColor = '#f9f9f9';
+        div.className = 'scl-row';
 
         const topRow = document.createElement('div');
         topRow.className = 'd-flex justify-content-between align-items-center mb-2';
 
         const hazardHeading = document.createElement('strong');
+        hazardHeading.className = 'text-sm';
         hazardHeading.textContent = 'Kategorie nebezpečnosti:';
         topRow.appendChild(hazardHeading);
 
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
-        removeButton.className = 'button button-delete button-small';
-        removeButton.textContent = '✖ Odstranit';
+        removeButton.className = 'button button-text text-danger button-small';
+        removeButton.innerHTML = '🗑️ Odstranit';
         removeButton.addEventListener('click', () => {
             div.remove();
             serializeScls();
@@ -426,15 +634,12 @@
         topRow.appendChild(removeButton);
         div.appendChild(topRow);
 
-        // Select pro hazard
         const selectHazard = document.createElement('select');
         selectHazard.className = 'scl-hazard form-control mb-3';
-
         let initialOption = document.createElement('option');
         initialOption.value = '';
         initialOption.textContent = 'Vyberte nebezpečí...';
         selectHazard.appendChild(initialOption);
-
         SCL_HAZARD_CATEGORIES.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
@@ -444,75 +649,77 @@
         });
         div.appendChild(selectHazard);
 
-        // Podmínky
         const condsContainer = document.createElement('div');
-        condsContainer.className = 'conds-container';
+        condsContainer.className = 'd-flex flex-wrap align-items-center gap-3';
 
-        // Řádek 1
+        // Row 1
         const row1 = document.createElement('div');
-        row1.className = 'd-flex align-items-center mb-2';
-        row1.style.gap = '10px';
-
-        row1.appendChild(document.createTextNode('Koncentrace (C) '));
+        row1.className = 'd-flex align-items-center gap-2';
+        row1.appendChild(document.createTextNode('C '));
         const op1Select = createOperatorSelect('scl-op1', cond1.op);
         row1.appendChild(op1Select);
-
         const val1Input = document.createElement('input');
         val1Input.type = 'number';
         val1Input.step = '0.01';
-        val1Input.className = 'scl-val1 form-control';
-        val1Input.placeholder = 'Limit %';
+        val1Input.className = 'scl-val1 form-control form-control-sm';
+        val1Input.style.maxWidth = '80px';
+        val1Input.placeholder = '%';
         val1Input.value = cond1.val;
         row1.appendChild(val1Input);
-        row1.appendChild(document.createTextNode(' %'));
-
+        row1.appendChild(document.createTextNode('%'));
         condsContainer.appendChild(row1);
 
-        // Range checkbox
-        const rangeDiv = document.createElement('div');
-        rangeDiv.className = 'mb-2';
-        const rangeLabel = document.createElement('label');
-        rangeLabel.style.fontWeight = 'normal';
-        rangeLabel.style.cursor = 'pointer';
-
-        const rangeCheck = document.createElement('input');
-        rangeCheck.type = 'checkbox';
-        rangeCheck.className = 'scl-range-check mr-2';
-        rangeCheck.checked = !!cond2;
-        rangeLabel.appendChild(rangeCheck);
-        rangeLabel.appendChild(document.createTextNode(' Přidat druhou podmínku (rozmezí)'));
-        rangeDiv.appendChild(rangeLabel);
-        condsContainer.appendChild(rangeDiv);
-
-        // Řádek 2 (volitelný)
+        // Row 2
         const row2 = document.createElement('div');
-        row2.className = 'scl-row2 d-flex align-items-center mb-2';
-        row2.style.gap = '10px';
+        row2.className = 'scl-row2 d-flex align-items-center gap-2';
         row2.style.display = cond2 ? 'flex' : 'none';
 
-        row2.appendChild(document.createTextNode('A zároveň (C) '));
+        // Separator
+        const sep = document.createElement('span');
+        sep.textContent = 'a';
+        sep.className = 'text-muted text-sm mx-1';
+        row2.appendChild(sep);
+
         const op2Select = createOperatorSelect('scl-op2', cond2 ? cond2.op : '<');
         row2.appendChild(op2Select);
-
         const val2Input = document.createElement('input');
         val2Input.type = 'number';
         val2Input.step = '0.01';
-        val2Input.className = 'scl-val2 form-control';
-        val2Input.placeholder = 'Limit %';
+        val2Input.className = 'scl-val2 form-control form-control-sm';
+        val2Input.style.maxWidth = '80px';
+        val2Input.placeholder = '%';
         if (cond2) val2Input.value = cond2.val;
         row2.appendChild(val2Input);
-        row2.appendChild(document.createTextNode(' %'));
-
+        row2.appendChild(document.createTextNode('%'));
         condsContainer.appendChild(row2);
+
+        // Range Toggle (moved to end of flex container)
+        const rangeDiv = document.createElement('div');
+        rangeDiv.className = 'form-check text-sm d-flex align-items-center mb-0';
+
+        const rangeCheck = document.createElement('input');
+        rangeCheck.type = 'checkbox';
+        rangeCheck.className = 'scl-range-check form-check-input mt-0';
+        rangeCheck.id = 'range_check_' + Math.random().toString(36).substr(2, 9);
+        rangeCheck.checked = !!cond2;
+
+        const rangeLabel = document.createElement('label');
+        rangeLabel.className = 'form-check-label ml-2';
+        rangeLabel.setAttribute('for', rangeCheck.id);
+        rangeLabel.textContent = 'Rozmezí';
+
+        rangeDiv.appendChild(rangeCheck);
+        rangeDiv.appendChild(rangeLabel);
+
+        condsContainer.appendChild(rangeDiv);
+
         div.appendChild(condsContainer);
 
-        // Event listener pro range checkbox
         rangeCheck.addEventListener('change', () => {
             row2.style.display = rangeCheck.checked ? 'flex' : 'none';
             serializeScls();
         });
 
-        // Event listeners pro aktualizaci
         [selectHazard, op1Select, val1Input, op2Select, val2Input].forEach(el => {
             el.addEventListener('change', serializeScls);
             el.addEventListener('input', serializeScls);
@@ -521,33 +728,24 @@
         sclContainer.appendChild(div);
     }
 
-    // 3. Načtení existujících SCLs při načtení stránky (pro Editaci)
     function loadExistingScls() {
         if (sclDataInput.value) {
             const sclsArray = sclDataInput.value.split(',').map(s => s.trim()).filter(s => s);
-
             sclsArray.forEach(sclString => {
-                // Nový formát: "Hazard: op1 val1; op2 val2"
                 if (sclString.includes(':')) {
                     const [hazard, condsStr] = sclString.split(':').map(s => s.trim());
                     const condsParts = condsStr.split(';').map(s => s.trim());
-
                     let c1 = { op: '>=', val: '' };
                     let c2 = null;
-
                     condsParts.forEach((cp, idx) => {
                         const match = cp.match(/^([>=<]+)\s*([\d\.]+)$/);
                         if (match) {
-                            if (idx === 0) {
-                                c1 = { op: match[1], val: match[2] };
-                            } else if (idx === 1) {
-                                c2 = { op: match[1], val: match[2] };
-                            }
+                            if (idx === 0) c1 = { op: match[1], val: match[2] };
+                            else if (idx === 1) c2 = { op: match[1], val: match[2] };
                         }
                     });
                     createSclRow(hazard, c1, c2);
                 } else if (sclString.includes('=')) {
-                    // Starý formát: "Hazard=Limit"
                     const [hazard, limit] = sclString.split('=').map(s => s.trim());
                     createSclRow(hazard, { op: '>=', val: limit });
                 }
@@ -556,14 +754,92 @@
         serializeScls();
     }
 
-    // 4. Inicializace
     loadExistingScls();
+    addSclButton.addEventListener('click', () => createSclRow());
 
-    // Listener pro tlačítko "Přidat SCL"
-    addSclButton.addEventListener('click', () => {
-        createSclRow();
+    // --- Unit Warnings & Conversion ---
+    const unitPpmRadio = document.getElementById('unit_ppm');
+    const unitMglRadio = document.getElementById('unit_mgl');
+    const gasInput = document.getElementById('ate_inhalation_gases');
+    const mwInput = document.getElementById('molecular_weight');
+    const gasUnitDisplay = document.getElementById('gas_unit_display');
+    const mglInfo = document.getElementById('mgl_conversion_info');
+    const mwWarning = document.getElementById('mw_missing_warning');
+
+    function updateGasUnitState() {
+        const isMgl = unitMglRadio.checked;
+        gasUnitDisplay.textContent = isMgl ? 'mg/l' : 'ppmV';
+        mglInfo.style.display = isMgl ? 'block' : 'none';
+
+        // Change step based on unit
+        gasInput.step = isMgl ? '0.001' : '1';
+
+        // Basic conversion attempt on switch? (Volatile UX, maybe skip for now and just clear or keep raw val)
+        // Keeping raw value is safer, user just toggles how it's interpreted.
+
+        checkUnitWarnings();
+    }
+
+    if (unitPpmRadio && unitMglRadio) {
+        unitPpmRadio.addEventListener('change', updateGasUnitState);
+        unitMglRadio.addEventListener('change', updateGasUnitState);
+    }
+
+    // Intercept form submission to convert if needed
+    const form = document.getElementById('substance-form');
+    form.addEventListener('submit', function (e) {
+        if (unitMglRadio.checked && gasInput.value) {
+            const mw = parseFloat(mwInput.value);
+            const mgl = parseFloat(gasInput.value);
+
+            if (!mw || mw <= 0) {
+                e.preventDefault();
+                mwWarning.style.display = 'block';
+                mwInput.focus();
+                mwInput.classList.add('is-invalid');
+                return;
+            }
+
+            // Convert to PPM before sending
+            // ppm = (mg/l * 24450) / MW (assuming 25 deg C, 1 atm -> Molar Vol approx 24.45 L)
+            const ppm = (mgl * 24450) / mw;
+            gasInput.value = Math.round(ppm);
+
+            // Allow submit - the backend receives the PPM value
+            // (Note: This mutates the user input visually before submit, which is accepted behavior here)
+        }
     });
 
-</script>
+    function checkUnitWarnings() {
+        const check = (id, threshold, type) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const val = parseFloat(el.value);
+            const warn = document.getElementById(type);
+            if (!warn) return;
 
+            if (id === 'ate_inhalation_gases' && unitMglRadio.checked) {
+                // If mg/l selected, warn if > 20 mg/l (approx Cat 4 limit for vapour, rough heuristic)
+                warn.style.display = (!isNaN(val) && val > 20) ? 'block' : 'none';
+                warn.textContent = '⚠️ Vysoká hodnota (>20 mg/l)';
+            } else if (type === 'warn_gases') {
+                warn.style.display = (!isNaN(val) && val > 0 && val < threshold) ? 'block' : 'none';
+                warn.textContent = '⚠️ Nízká hodnota (<100 ppm)';
+            } else {
+                warn.style.display = (!isNaN(val) && val > threshold) ? 'block' : 'none';
+            }
+        };
+        check('ate_inhalation_vapours', 100, 'warn_vapours');
+        check('ate_inhalation_dusts_mists', 100, 'warn_dusts');
+        check('ate_inhalation_gases', 100, 'warn_gases');
+    }
+
+    ['ate_inhalation_vapours', 'ate_inhalation_dusts_mists', 'ate_inhalation_gases'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', checkUnitWarnings);
+            el.addEventListener('change', checkUnitWarnings);
+        }
+    });
+</script>
 {% endblock %}

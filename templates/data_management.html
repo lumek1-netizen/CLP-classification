@@ -3,163 +3,140 @@
 {% block title %}Správa dat{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h2>📂 Správa dat</h2>
-        <p>Exportujte své látky a směsi do souboru nebo importujte data z dříve vytvořeného exportu.</p>
+<div class="container mt-5">
+
+    <!-- Sticky Action Bar -->
+    <div class="sticky-action-bar">
+        <div class="d-flex align-items-center" style="gap: 1.5rem;">
+            <h2 style="margin: 0; white-space: nowrap; margin-right: auto;">Správa dat</h2>
+        </div>
     </div>
 
-    <div class="card-body">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+    <hr>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-4">
         {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">
+        <div class="alert alert-{{ category }} mb-2" role="alert">
             {{ message }}
         </div>
         {% endfor %}
-        {% endif %}
-        {% endwith %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
-        {% if current_user.has_role('admin') %}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
-            <!-- Export Section -->
-            <div class="settings-section"
-                style="padding: 1.5rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <h3 style="margin-top: 0; color: var(--accent-primary);">📤 Export dat</h3>
-                <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 2rem;">
-                    Stáhněte si všechna data (látky i směsi) v jednom JSON souboru. Tento soubor můžete použít jako
-                    zálohu nebo pro přenos dat do jiné instalace aplikace.
-                </p>
-                <a href="{{ url_for('data.export_data') }}" class="btn btn-primary"
-                    style="width: 100%; text-align: center; display: block; text-decoration: none;">
-                    Stáhnout export (JSON)
-                </a>
+    {% if current_user.has_role('admin') %}
+
+    <!-- 1. System Backup (JSON) -->
+    <div class="mb-5">
+        <h3 class="text-lg font-bold text-secondary mb-3">📦 Záloha systému (JSON)</h3>
+        <p class="text-muted text-sm mb-4">Kompletní záloha všech dat (látky i směsi) pro účely archivace nebo přenosu.
+        </p>
+
+        <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <!-- Export JSON -->
+            <div class="card h-100">
+                <div class="card__header">
+                    <h3 class="card__title">📤 Exportovat data</h3>
+                </div>
+                <div class="card__body d-flex flex-column">
+                    <p class="text-sm text-muted flex-grow-1 mb-4">
+                        Stáhněte aktuální stav databáze do jednoho souboru <code>.json</code>.
+                    </p>
+                    <a href="{{ url_for('data.export_data') }}"
+                        class="button button-primary w-100 text-center text-decoration-none">
+                        ⬇️ Stáhnout JSON
+                    </a>
+                </div>
             </div>
 
-            <!-- Import Section -->
-            <div class="settings-section"
-                style="padding: 1.5rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <h3 style="margin-top: 0; color: var(--accent-secondary);">📥 Import dat</h3>
-                <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1.5rem;">
-                    Nahrajte JSON soubor s dříve exportovanými daty.
-                    <br><br>
-                    <strong>Pozor:</strong> Budou importovány pouze položky, které v databázi ještě neexistují
-                    (porovnává se název). Existující položky nebudou přepsány.
-                </p>
-
-                <form action="{{ url_for('data.import_data') }}" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <input type="file" name="file" accept=".json" required
-                            style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                    </div>
-                    <button type="submit" class="btn btn-secondary" style="width: 100%;">
-                        Nahrát a importovat
-                    </button>
-                </form>
+            <!-- Import JSON -->
+            <div class="card h-100">
+                <div class="card__header">
+                    <h3 class="card__title">📥 Importovat data</h3>
+                </div>
+                <div class="card__body">
+                    <p class="text-sm text-muted mb-4">
+                        Nahrajte dříve vytvořenou zálohu. <span class="text-warning">Existující položky nebudou
+                            přepsány.</span>
+                    </p>
+                    <form action="{{ url_for('data.import_data') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group mb-3">
+                            <input type="file" name="file" accept=".json" required class="form-control">
+                        </div>
+                        <button type="submit" class="button button-secondary w-100">
+                            ⬆️ Nahrát a obnovit
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
+    </div>
 
-        <hr style="margin: 3rem 0; border-color: rgba(255, 255, 255, 0.1);">
+    <!-- 2. Substances CSV -->
+    <div class="mb-5">
+        <h3 class="text-lg font-bold text-secondary mb-3">📊 Hromadná správa látek (CSV)</h3>
+        <p class="text-muted text-sm mb-4">Import a export tabulkových dat pro Excel.</p>
 
-        <!-- CSV Import/Export Section -->
-        <div>
-            <h2 style="margin-bottom: 2rem;">📊 Import/Export látek (CSV)</h2>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                <!-- CSV Import -->
-                <div class="form-card">
-                    <h3>📥 Import látek z CSV</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Hromadně importujte látky z CSV souboru. Podporovány jsou všechny vlastnosti látek včetně 2026
-                        rozšíření.
+        <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <!-- Import CSV -->
+            <div class="card h-100">
+                <div class="card__header">
+                    <h3 class="card__title">📥 Import z CSV</h3>
+                </div>
+                <div class="card__body">
+                    <p class="text-sm text-muted mb-4">
+                        Nahrajte soubor <code>.csv</code> s definicemi látek.
                     </p>
+
+                    <div class="bg-secondary rounded p-3 mb-4 border border-color">
+                        <p class="text-xs text-primary mb-0"><strong>💡 Tip:</strong> Stáhněte si šablonu pro správný
+                            formát sloupců.</p>
+                    </div>
 
                     <form action="{{ url_for('data.import_substances_csv') }}" method="POST"
                         enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                        <div class="form-group">
-                            <label for="csv_file">Vyberte CSV soubor</label>
-                            <input type="file" id="csv_file" name="file" accept=".csv" required
-                                style="width: 100%; padding: 0.75rem; border: 2px dashed var(--border-color); border-radius: var(--radius); background: #f9fafb;">
+                        <div class="form-group mb-3">
+                            <input type="file" name="file" accept=".csv" required class="form-control">
                         </div>
-
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <button type="submit" class="button button-primary" style="flex: 1;">
-                                📤 Importovat látky
-                            </button>
-                            <a href="{{ url_for('data.download_csv_template') }}" class="button button-secondary"
-                                style="flex: 1; text-decoration: none; text-align: center;">
-                                📋 Stáhnout šablonu
-                            </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="button button-primary flex-grow-1">Importovat</button>
+                            <a href="{{ url_for('data.download_csv_template') }}"
+                                class="button button-secondary text-decoration-none">Šablona</a>
                         </div>
                     </form>
-
-                    <div
-                        style="margin-top: 1.5rem; padding: 1rem; background: #eff6ff; border-radius: var(--radius); border: 1px solid #bfdbfe;">
-                        <p style="font-size: 0.85rem; color: #1e40af; margin: 0;">
-                            <strong>💡 Tip:</strong> Stáhněte si šablonu CSV s příklady a vyplňte své látky podle vzoru.
-                        </p>
-                    </div>
                 </div>
+            </div>
 
-                <!-- CSV Export -->
-                <div class="form-card">
-                    <h3>📤 Export látek do CSV</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Exportujte všechny látky do CSV souboru. Soubor můžete upravit a znovu importovat.
+            <!-- Export CSV -->
+            <div class="card h-100">
+                <div class="card__header">
+                    <h3 class="card__title">📤 Export do CSV</h3>
+                </div>
+                <div class="card__body d-flex flex-column">
+                    <p class="text-sm text-muted flex-grow-1 mb-4">
+                        Exportuje kompletní seznam látek včetně ATE a 2026 rozšíření do formátu CSV.
                     </p>
-
-                    <div
-                        style="padding: 2rem; text-align: center; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: var(--radius); margin-bottom: 1rem;">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">
-                            Export obsahuje všechny látky s kompletními daty
-                        </p>
-                    </div>
-
-                    <a href="{{ url_for('data.export_substances_csv') }}" class="button button-primary"
-                        style="width: 100%; text-decoration: none; text-align: center;">
-                        📥 Exportovat všechny látky
+                    <a href="{{ url_for('data.export_substances_csv') }}"
+                        class="button button-primary w-100 text-center text-decoration-none">
+                        ⬇️ Exportovat CSV
                     </a>
-
-                    <div
-                        style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: var(--radius); border: 1px solid #fde68a;">
-                        <p style="font-size: 0.85rem; color: #92400e; margin: 0;">
-                            <strong>⚠️ Poznámka:</strong> Export obsahuje všechna pole včetně ATE hodnot, M-faktorů a
-                            2026 rozšíření.
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
-        {% else %}
-        <div class="alert alert-warning mt-4 p-4 text-center">
-            <h4>🚫 Přístup odepřen</h4>
-            <p>Tato sekce je přístupná pouze uživatelům s rolí <strong>Administrátor</strong>.</p>
-        </div>
-        {% endif %}
     </div>
+
+    {% else %}
+    <div class="alert alert-warning text-center p-5">
+        <h4 class="mb-2">🚫 Přístup odepřen</h4>
+        <p>Tato sekce je přístupná pouze uživatelům s rolí <strong>Administrátor</strong>.</p>
+    </div>
+    {% endif %}
+
 </div>
 
-<style>
-    .alert {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-radius: 8px;
-    }
-
-    .alert-danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .alert-success {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-</style>
 {% endblock %}

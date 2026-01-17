@@ -4,82 +4,195 @@
 {% block title %}Seznam Látek{% endblock %}
 
 {% block content %}
+<div class="container mt-5">
 
-{% set active_tab = 'substances' %}
-
-<h2>Seznam Evidovaných Látek</h2>
-
-<div class="search-container">
-    <form action="{{ url_for('substances.index') }}" method="GET" class="search-form">
-        <input type="text" name="q" value="{{ q or '' }}" placeholder="Hledat podle názvu nebo CAS..."
-            class="search-input">
-        <button type="submit" class="button button-primary button-small">Hledat</button>
-        {% if q %}
-        <a href="{{ url_for('substances.index') }}" class="button button-small"
-            style="background-color: var(--secondary-color); color: white; text-decoration: none;">Zrušit</a>
-        {% endif %}
-    </form>
-</div>
-
-<table class="data-list">
-    <thead>
-        <tr>
-            <th>Název Látky</th>
-            <th>CAS Číslo</th>
-            <th>GHS Kódy</th>
-            {% if current_user.has_role(['admin', 'editor']) %}
-            <th class="text-center">Akce</th>
-            {% endif %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for substance in substances %}
-        <tr id="substance-row-{{ substance.id }}">
-            <td>{{ substance.name }}</td>
-            <td>{{ substance.cas_number if substance.cas_number else 'N/A' }}</td>
-            <td>
-                {% if substance.ghs_codes %}
-                {% for code in substance.ghs_codes.split(', ') %}
-                <span class="ghs-tag">{{ code }}</span>
-                {% endfor %}
-                {% else %}
-                N/A (Neklasifikováno)
+    <div class="sticky-action-bar">
+        <div class="d-flex align-items-center" style="gap: 1.5rem;">
+            <h2 style="margin: 0; white-space: nowrap; margin-right: auto;">Seznam látek</h2>
+            <form action="{{ url_for('substances.index') }}" method="GET" class="search-form"
+                style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="text" name="q" value="{{ q or '' }}" placeholder="Hledat..." class="search-input"
+                    style="width: 250px;">
+                <button type="submit" class="button button-primary button-small">🔍</button>
+                {% if q %}
+                <a href="{{ url_for('substances.index') }}" class="button button-small"
+                    style="background-color: var(--secondary-color); color: white; text-decoration: none;">❌</a>
                 {% endif %}
-            </td>
+            </form>
+        </div>
+        {% if current_user.has_role(['admin', 'editor']) %}
+        <a href="{{ url_for('substances.create') }}" class="button button-primary" style="text-decoration: none;">
+            ➕ Vytvořit novou látku
+        </a>
+        {% endif %}
+    </div>
 
-            {% if current_user.has_role(['admin', 'editor']) %}
-            <td class="text-center">
-                <a href="{{ url_for('substances.edit', substance_id=substance.id) }}" class="button button-small"
-                    style="text-decoration: none; background-color: #17a2b8; color: white; margin-right: 5px;">
-                    Upravit
-                </a>
+    <hr>
 
-                <form action="{{ url_for('substances.delete', substance_id=substance.id) }}" method="POST"
-                    style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                    <button type="submit" class="button button-delete button-small" title="Smazat látku"
-                        onclick="return confirm('Opravdu chcete látku **{{ substance.name }}** smazat? Tato akce je nevratná.')">
-                        Smazat
-                    </button>
-                </form>
-            </td>
-            {% endif %}
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4">Žádné látky zatím nebyly evidovány.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <div class="table-responsive">
+        <table class="data-list">
+            <thead class="table-secondary">
+                <tr>
+                    <th style="width: 18%;">Název Látky</th>
+                    <th style="width: 9%;">CAS Číslo</th>
+                    <th style="width: 8%;">GHS Symboly</th>
+                    <th style="width: 18%;">H-věty</th>
 
-<div class="button-group" style="text-align: right; margin-top: 20px;">
-    {{ render_pagination(pagination, 'substances.index') }}
-    {% if current_user.has_role(['admin', 'editor']) %}
-    <a href="{{ url_for('substances.create') }}" class="button button-primary" style="text-decoration: none;">
-        Vytvořit novou látku
-    </a>
-    {% endif %}
+                    <th style="width: 5%; text-align: center;">
+                        SCL <sup class="info-tooltip" title="Specifické koncentrační limity">ⓘ</sup>
+                    </th>
+                    <th style="width: 5%; text-align: center;">
+                        SVHC <sup class="info-tooltip" title="Látka vzbuzující mimořádné obavy">ⓘ</sup>
+                    </th>
+                    <th style="width: 7%; text-align: center;">
+                        PBT/vPvB <sup class="info-tooltip"
+                            title="Perzistentní, bioakumulativní a toxické / Vysoce perzistentní a vysoce bioakumulativní">ⓘ</sup>
+                    </th>
+                    <th style="width: 7%; text-align: center;">
+                        PMT/vPvM <sup class="info-tooltip"
+                            title="Perzistentní, mobilní a toxické / Vysoce perzistentní a vysoce mobilní">ⓘ</sup>
+                    </th>
+                    <th style="width: 6%; text-align: center;">
+                        An. XIV <sup class="info-tooltip"
+                            title="REACH Příloha XIV: Seznam látek podléhajících povolení">ⓘ</sup>
+                    </th>
+                    <th style="width: 6%; text-align: center;">
+                        An. XVII <sup class="info-tooltip"
+                            title="REACH Příloha XVII: Omezení výroby, uvádění na trh a používání">ⓘ</sup>
+                    </th>
+
+                    {% if current_user.has_role(['admin', 'editor']) %}
+                    <th style="width: 11%;" class="text-center">Akce</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for substance in substances %}
+                <tr id="substance-row-{{ substance.id }}">
+                    <td>
+                        <a href="{{ url_for('substances.edit', substance_id=substance.id) }}"
+                            style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                            {{ substance.name }}
+                        </a>
+                    </td>
+                    <td><small class="text-muted">{{ substance.cas_number if substance.cas_number else 'N/A' }}</small>
+                    </td>
+                    <td>
+                        <div class="d-flex" style="gap: 0.25rem; flex-wrap: wrap;">
+                            {% if substance.ghs_codes %}
+                            {% for code in substance.ghs_codes.split(', ') %}
+                            <img src="{{ url_for('static', filename='GHS_Symbols/' + code + '.gif') }}" alt="{{ code }}"
+                                title="{{ code }}" style="width: 24px; height: 24px;"
+                                onerror="this.style.display='none'">
+                            {% endfor %}
+                            {% else %}
+                            <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% set all_h_phrases = [] %}
+                        {% if substance.health_h_phrases %}
+                        {% set all_h_phrases = all_h_phrases + substance.health_h_phrases.replace('\r\n', ',
+                        ').replace('\n', ', ').split(', ') %}
+                        {% endif %}
+                        {% if substance.env_h_phrases %}
+                        {% set all_h_phrases = all_h_phrases + substance.env_h_phrases.replace('\r\n', ',
+                        ').replace('\n', ', ').split(', ') %}
+                        {% endif %}
+
+                        <small>
+                            {% if all_h_phrases %}
+                            {% for phrase in all_h_phrases if phrase.strip() %}
+                            {{ phrase.strip() }}{{ ", " if not loop.last else "" }}
+                            {% endfor %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </small>
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.scl_limits %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.is_svhc %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.is_pbt or substance.is_vpvb %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.is_pmt or substance.is_vpvm %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.is_reach_annex_xiv %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        {% if substance.is_reach_annex_xvii %}
+                        <span class="text-success" title="Ano">✅</span>
+                        {% else %}
+                        <span class="text-danger" title="Ne">❌</span>
+                        {% endif %}
+                    </td>
+
+                    {% if current_user.has_role(['admin', 'editor']) %}
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center" style="gap: 0.5rem;">
+                            <a href="{{ url_for('substances.edit', substance_id=substance.id) }}"
+                                class="button button-small"
+                                style="text-decoration: none; background-color: #17a2b8; color: white;">
+                                Upravit
+                            </a>
+
+                            <form action="{{ url_for('substances.delete', substance_id=substance.id) }}" method="POST"
+                                style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="button button-delete button-small" title="Smazat látku"
+                                    onclick="return confirm('Opravdu chcete látku **{{ substance.name }}** smazat? Tato akce je nevratná.')">
+                                    Smazat
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="11" class="text-center py-4">Žádné látky zatím nebyly evidovány.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="button-group" style="text-align: right; margin-top: 20px;">
+        {{ render_pagination(pagination, 'substances.index') }}
+    </div>
+
 </div>
-
 {% endblock %}

@@ -30,6 +30,7 @@ class Substance(db.Model):
     m_factor_acute = db.Column(db.Integer, default=1)
     m_factor_chronic = db.Column(db.Integer, default=1)
     scl_limits = db.Column(db.Text, nullable=True)
+    molecular_weight = db.Column(db.Float, nullable=True)  # Pro přepočet mg/l <-> ppm u plynů
 
     # Nové třídy nebezpečnosti (2026 / Nařízení 2023/707)
     is_lact = db.Column(db.Boolean, default=False)  # H362: Účinky na laktaci
@@ -40,12 +41,17 @@ class Substance(db.Model):
     is_pmt = db.Column(db.Boolean, default=False)
     is_vpvm = db.Column(db.Boolean, default=False)
     has_ozone = db.Column(db.Boolean, default=False) # H420
+    is_svhc = db.Column(db.Boolean, default=False) # Substance of Very High Concern
+    is_reach_annex_xiv = db.Column(db.Boolean, default=False) # REACH Příloha XIV
+    is_reach_annex_xvii = db.Column(db.Boolean, default=False) # REACH Příloha XVII
 
     components = db.relationship(
         "MixtureComponent",
         back_populates="substance",
         lazy=True,
-        cascade="all, delete-orphan",
+        # REMOVED: cascade="all, delete-orphan" -> This prevented safe deletion checks!
+        # Now, if we try to delete Substance, DB ForeignKey constraint will block it
+        # because MixtureComponents still exist.
     )
 
     __table_args__ = (
@@ -106,4 +112,7 @@ class Substance(db.Model):
             "is_pmt": self.is_pmt,
             "is_vpvm": self.is_vpvm,
             "has_ozone": self.has_ozone,
+            "is_svhc": self.is_svhc,
+            "is_reach_annex_xiv": self.is_reach_annex_xiv,
+            "is_reach_annex_xvii": self.is_reach_annex_xvii,
         }

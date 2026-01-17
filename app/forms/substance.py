@@ -35,6 +35,9 @@ class SubstanceForm(FlaskForm):
     ate_inhalation_gases = FloatField(
         "ATE inhalační - plyny (ppm)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
+    molecular_weight = FloatField(
+        "Molekulová hmotnost (g/mol)", validators=[Optional(), NumberRange(min=0.01)], filters=[empty_to_none]
+    )
 
     m_factor_acute = IntegerField(
         "M-faktor akutní", validators=[Optional(), NumberRange(min=1)], default=1, filters=[empty_to_none]
@@ -53,3 +56,6 @@ class SubstanceForm(FlaskForm):
     is_pmt = BooleanField("PMT (Perzistentní, mobilní, toxická)")
     is_vpvm = BooleanField("vPvM (Vysoce perzistentní, vysoce mobilní)")
     has_ozone = BooleanField("Nebezpečná pro ozonovou vrstvu (H420)")
+    is_svhc = BooleanField("Je SVHC (Látka vzbuzující mimořádné obavy)")
+    is_reach_annex_xiv = BooleanField("REACH Příloha XIV (Povolování)")
+    is_reach_annex_xvii = BooleanField("REACH Příloha XVII (Omezení)")

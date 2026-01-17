@@ -17,6 +17,21 @@ def calculate_mixture_ate(
     }
     details = {k: [] for k in atemix_sums.keys()}
 
+    phys_state = mixture.physical_state
+    allowed_routes = set(atemix_sums.keys())
+    
+    if phys_state:
+        state_val = phys_state.value if hasattr(phys_state, "value") else str(phys_state)
+        if state_val == "gas":
+            allowed_routes = {"dermal", "inhalation_gases"}
+        elif state_val == "liquid":
+            allowed_routes = {"oral", "dermal", "inhalation_vapours"}
+            # Only include dusts/mists if the mixture can generate mist
+            if mixture.can_generate_mist:
+                allowed_routes.add("inhalation_dusts_mists")
+        elif state_val == "solid":
+            allowed_routes = {"oral", "dermal", "inhalation_dusts_mists"}
+
     for component in mixture.components:
         c = component.concentration
         substance = component.substance
@@ -56,6 +71,8 @@ def calculate_mixture_ate(
         }
 
         for key, (route_type, val) in routes_map.items():
+            if key not in allowed_routes:
+                continue
             ate_val, source = get_ate(val, route_type, h_phrases)
             if ate_val:
                 atemix_sums[key] += c / ate_val

@@ -48,6 +48,7 @@ class SubstanceService:
         ate_inhalation_vapours = get_float_or_none(form_data, 'ate_inhalation_vapours')
         ate_inhalation_dusts_mists = get_float_or_none(form_data, 'ate_inhalation_dusts_mists')
         ate_inhalation_gases = get_float_or_none(form_data, 'ate_inhalation_gases')
+        molecular_weight = get_float_or_none(form_data, 'molecular_weight')
         
         # M-faktory
         m_factor_acute = get_int_or_default(form_data, 'm_factor_acute', 1)
@@ -65,6 +66,9 @@ class SubstanceService:
         is_pmt = 'is_pmt' in form_data
         is_vpvm = 'is_vpvm' in form_data
         has_ozone = 'has_ozone' in form_data
+        is_svhc = 'is_svhc' in form_data
+        is_reach_annex_xiv = 'is_reach_annex_xiv' in form_data
+        is_reach_annex_xvii = 'is_reach_annex_xvii' in form_data
         
         # Vytvoření instance
         return Substance(
@@ -78,6 +82,7 @@ class SubstanceService:
             ate_inhalation_vapours=ate_inhalation_vapours,
             ate_inhalation_dusts_mists=ate_inhalation_dusts_mists,
             ate_inhalation_gases=ate_inhalation_gases,
+            molecular_weight=molecular_weight,
             m_factor_acute=m_factor_acute,
             m_factor_chronic=m_factor_chronic,
             scl_limits=scl_limits,
@@ -89,6 +94,9 @@ class SubstanceService:
             is_pmt=is_pmt,
             is_vpvm=is_vpvm,
             has_ozone=has_ozone,
+            is_svhc=is_svhc,
+            is_reach_annex_xiv=is_reach_annex_xiv,
+            is_reach_annex_xvii=is_reach_annex_xvii,
         )
     
     @staticmethod
@@ -130,6 +138,7 @@ class SubstanceService:
         substance.ate_inhalation_vapours = get_float_or_none(form_data, 'ate_inhalation_vapours')
         substance.ate_inhalation_dusts_mists = get_float_or_none(form_data, 'ate_inhalation_dusts_mists')
         substance.ate_inhalation_gases = get_float_or_none(form_data, 'ate_inhalation_gases')
+        substance.molecular_weight = get_float_or_none(form_data, 'molecular_weight')
         
         # M-faktory
         substance.m_factor_acute = get_int_or_default(form_data, 'm_factor_acute', 1)
@@ -147,6 +156,9 @@ class SubstanceService:
         substance.is_pmt = 'is_pmt' in form_data
         substance.is_vpvm = 'is_vpvm' in form_data
         substance.has_ozone = 'has_ozone' in form_data
+        substance.is_svhc = 'is_svhc' in form_data
+        substance.is_reach_annex_xiv = 'is_reach_annex_xiv' in form_data
+        substance.is_reach_annex_xvii = 'is_reach_annex_xvii' in form_data
         
         return substance
     

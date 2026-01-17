@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from sqlalchemy import or_
 from flask_login import login_required
 from app.utils.security import editor_required
 from app.extensions import db
@@ -7,6 +8,7 @@ from app.forms.mixture import MixtureForm
 from app.services.clp import run_clp_classification
 from app.services.mixture_service import MixtureService
 from app.constants.clp import H_PHRASES_DISPLAY
+from app.constants.p_phrases import ALL_P_PHRASES
 from sqlalchemy.exc import IntegrityError
 
 mixtures_bp = Blueprint("mixtures", __name__)
@@ -21,7 +23,18 @@ def index():
 
     query = Mixture.query.order_by(Mixture.created_date.desc())
     if q:
-        query = query.filter(Mixture.name.ilike(f"%{q}%"))
+        query = (
+            query.outerjoin(Mixture.components)
+            .outerjoin(MixtureComponent.substance)
+            .filter(
+                or_(
+                    Mixture.name.ilike(f"%{q}%"),
+                    Substance.name.ilike(f"%{q}%"),
+                    Substance.cas_number.ilike(f"%{q}%"),
+                )
+            )
+            .distinct()
+        )
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     mixtures = pagination.items
@@ -51,7 +64,7 @@ def create():
             components = MixtureService.parse_and_validate_components(request.form)
 
 
-            new_mixture = Mixture(name=name)
+            new_mixture = Mixture(name=name, ph=form.ph.data)
             db.session.add(new_mixture)
             db.session.flush()
 
@@ -122,6 +135,7 @@ def detail(mixture_id):
         components=comp_details,
         total_concentration=total,
         h_phrases_display=H_PHRASES_DISPLAY,
+        p_phrases_text=ALL_P_PHRASES,
         active_tab="mixtures",
         audit_logs=audit_logs,
     )
@@ -144,6 +158,7 @@ def edit(mixture_id):
     if form.validate_on_submit():
         try:
             mixture.name = form.name.data.strip()
+            mixture.ph = form.ph.data
             
             # Parsování a validace komponent pomocí service layer
             components = MixtureService.parse_and_validate_components(request.form)

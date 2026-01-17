@@ -82,7 +82,12 @@ def test_full_mixture_classification_workflow(auth_client, app):
         assert mixture is not None
         assert "H318" in mixture.final_health_hazards
         assert "H314" not in mixture.final_health_hazards
+        assert "H314" not in mixture.final_health_hazards
         assert "GHS05" in mixture.final_ghs_codes
+
+        # Ověření P-vět pro H318 (P280, P305+P351+P338, P310)
+        assert "P280" in mixture.final_precautionary_statements
+        assert "P310" in mixture.final_precautionary_statements
 
         # Ověření ATEmix (oral)
         # 100 / ATEmix = 3/500 + 10/200 = 0.006 + 0.05 = 0.056

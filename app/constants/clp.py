@@ -1,5 +1,18 @@
 # app/constants/clp.py
 # --- Převodní Tabulky ATE (Dle Přílohy I, Tabulka 3.1.2 CLP) ---
+from enum import Enum
+
+class PhysicalState(str, Enum):
+    LIQUID = "liquid"
+    SOLID = "solid"
+    GAS = "gas"
+    AEROSOL = "aerosol"
+
+class UserType(str, Enum):
+    CONSUMER = "consumer"
+    PROFESSIONAL = "professional"
+    INDUSTRIAL = "industrial"
+
 ATE_LIMITS = {
     "oral": [5, 50, 300, 2000],
     "dermal": [50, 200, 1000, 2000],

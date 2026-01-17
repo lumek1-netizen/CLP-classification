@@ -102,6 +102,20 @@ def _get_cutoff_limit(hazard_category: str, h_code: str = None) -> float:
     return GENERAL_CUTOFF_PERCENT
 
 
+def _get_classification_threshold(category: str) -> float:
+    """Vrátí standardní klasifikační limit pro danou kategorii (pro výpočet vah)."""
+    if category in ["Skin Corr. 1", "Skin Corr. 1A", "Skin Corr. 1B", "Skin Corr. 1C"]:
+        return SKIN_CORROSION_THRESHOLD_PERCENT
+    if category == "Skin Irrit. 2":
+        return SKIN_IRRITATION_THRESHOLD_PERCENT
+    if category == "Eye Dam. 1":
+        return EYE_DAMAGE_THRESHOLD_PERCENT
+    if category == "Eye Irrit. 2":
+        return EYE_IRRITATION_THRESHOLD_PERCENT
+    if category == "STOT SE 3":
+        return STOT_SE3_THRESHOLD_PERCENT
+    return STANDARD_CONCENTRATION_LIMITS.get(category, {}).get("cl", 100.0)
+
 def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
     """Vypočítá součty koncentrací pro jednotlivé kategorie hazardů."""
     hazard_totals = {}
@@ -109,11 +123,14 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
     def add_contribution(category, concentration, sub_name, note="", forced_by_scl=False):
         if category not in hazard_totals:
             hazard_totals[category] = {"total": 0.0, "contributors": [], "forced_by_scl": False}
+        
         hazard_totals[category]["total"] += concentration
+        
         if forced_by_scl:
             hazard_totals[category]["forced_by_scl"] = True
+            
         hazard_totals[category]["contributors"].append(
-            f"{sub_name} ({concentration}%{note})"
+            f"{sub_name} ({concentration:.3f}%{note})"
         )
 
     for component in mixture.components:
@@ -121,59 +138,142 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
         conc = component.concentration
         sub_name = substance.name
 
-        scl_covered_groups = set()
+        # --- 1. SCL Parsing ---
         parsed_scls_data = {}
+        scl_covered_categories = set()
+        
         if substance.scl_limits:
-            parsed_scls_data = parse_scls(substance.scl_limits)
-            for scl_cat in parsed_scls_data.keys():
-                clean_cat = scl_cat.split(";")[0].strip()
-                if clean_cat in CAT_TO_GROUP:
-                    scl_covered_groups.add(CAT_TO_GROUP[clean_cat])
+            try:
+                parsed_scls_data = parse_scls(substance.scl_limits)
+                for scl_cat in parsed_scls_data.keys():
+                    clean_cat = scl_cat.split(";")[0].strip()
+                    # Normalizace specifických podkategorií na obecné pro účely blokování
+                    if clean_cat.startswith("Skin Corr. 1"):
+                        scl_covered_categories.add("Skin Corr. 1")
+                    elif clean_cat.startswith("Eye Dam. 1"):
+                        scl_covered_categories.add("Eye Dam. 1")
+                    else:
+                         scl_covered_categories.add(clean_cat)
+            except Exception as e:
+                # Log error or ignore invalid SCL string to prevent crash
+                from flask import current_app
+                current_app.logger.error(f"Error parsing SCL for {sub_name}: {e}", exc_info=True)
 
-        # 1. SCL Vyhodnocení
+        # --- 2. SCL Evaluation (Direct Hits) ---
+        # Pokud látka splňuje svůj vlastní SCL, je "forced"
         for scl_cat, conditions in parsed_scls_data.items():
+            clean_cat = scl_cat.split(";")[0].strip()
+            target_cat = clean_cat
+            
+            # Mapping subcategories to main calculation categories
+            if target_cat.startswith("Skin Corr. 1"):
+                target_cat = "Skin Corr. 1"
+            
+            # Check conditions
             if evaluate_scl_condition(conc, conditions):
-                clean_cat = scl_cat.split(";")[0].strip()
-                target_cat = clean_cat
-                if target_cat.startswith("Skin Corr. 1"):
-                    target_cat = "Skin Corr. 1"
                 cond_str = ", ".join([f"{c['op']}{c['value']}" for c in conditions])
-                add_contribution(target_cat, conc, sub_name, f" [SCL {cond_str}]", forced_by_scl=True)
+                add_contribution(target_cat, conc, sub_name, f" [SCL {cond_str} OK]", forced_by_scl=True)
 
-        # 2. GCL / Standardní limity z H-vět
+        # --- 3. Additive Contribution (Weighted) ---
+        # Procházíme H-věty látky pro standardní aditivitu
         if substance.health_h_phrases:
             h_codes = [h.strip() for h in substance.health_h_phrases.split(",")]
-            processed_groups = set()
+            processed_groups_for_substance = set()
+            
             for h_code in h_codes:
                 possible_groups = H_CODE_TO_GROUPS.get(h_code, set())
                 for group in possible_groups:
-                    if group in scl_covered_groups or group in processed_groups:
+                    # Zjistíme cílovou kategorii pro tento H-kód
+                    target_cat = _get_target_category_from_hcode(h_code, group)
+                    if not target_cat:
                         continue
 
-                    target_cat = _get_target_category_from_hcode(h_code, group)
+                    # -- FIX MASKING --
+                    # Nepřeskakujeme celou skupinu, jen pokud je tato KONKRÉTNÍ kategorie pokryta SCL
+                    # (a to navíc jen pokud by SCL znamenal "vyjmutí" z aditivity, což u Skin/Eye neplatí,
+                    # tam se SCL používá pro vážení).
+                    
+                    # Logika: 
+                    # 1. Pokud je pro tuto kategorii definován SCL, použijeme ho pro váhu.
+                    # 2. Pokud není, použijeme standardní váhu (1.0).
+                    
+                    # Hledáme relevantní SCL limit pro tuto kategorii
+                    scl_limit_val = None
+                    
+                    # Musíme najít správný klíč v parsed_scls_data, který odpovídá target_cat
+                    # target_cat je např "Skin Irrit. 2". parsed_scls může mít "Skin Irrit. 2".
+                    
+                    # Pro Skin Corr 1 hledáme i podkategorie 1A, 1B, 1C v SCL
+                    relevant_scl_keys = []
+                    if target_cat == "Skin Corr. 1":
+                        relevant_scl_keys = [k for k in parsed_scls_data.keys() if k.startswith("Skin Corr. 1")]
+                    else:
+                        if target_cat in parsed_scls_data:
+                            relevant_scl_keys = [target_cat]
 
-                    if target_cat:
-                        limit_info = STANDARD_CONCENTRATION_LIMITS.get(target_cat, {})
-                        gcl = limit_info.get("cl", 100.0)
-                        cutoff = _get_cutoff_limit(target_cat, h_code)
-                        if conc < cutoff:
-                            continue
+                    # Pokud máme SCL, zjistíme jeho hodnotu (předpokládáme nejnižší limit pokud je víc podmínek?)
+                    # Obvykle SCL je ">= X".
+                    if relevant_scl_keys:
+                        # Vezmeme první nalezený (zjednodušení)
+                        # Hledáme podmínku s číslem
+                        for cond in parsed_scls_data[relevant_scl_keys[0]]:
+                             # Hledáme hodnotu limitu.
+                             scl_limit_val = cond['value']
+                             break
+                    
+                    # Určení váhy
+                    weight = 1.0
+                    standard_limit = _get_classification_threshold(target_cat)
+                    
+                    note = f" [{h_code}]"
+                    
+                    if scl_limit_val:
+                        # -- FIX ADDITIVITY BYPASS --
+                        # Calculate Weight: Standard / SCL
+                        if scl_limit_val > 0:
+                            weight = standard_limit / scl_limit_val
+                            if weight != 1.0:
+                                note += f" (SCL {scl_limit_val}% -> x{weight:.2f})"
+                    
+                    # Efektivní koncentrace
+                    effective_conc = conc * weight
+                    
+                    # Cut-off check
+                    # CLP Table 1.1 Note: Where an SCL is present, the lower of the two values should be used.
+                    cutoff = _get_cutoff_limit(target_cat, h_code)
+                    if scl_limit_val is not None:
+                        cutoff = min(cutoff, scl_limit_val)
+                    
+                    if conc < cutoff:
+                        continue
 
-                        is_additive = group in ["Skin", "Eye", "Aquatic"] or h_code in [
-                            "H335",
-                            "H336",
-                        ]
-                        if is_additive:
-                            sum_cat = target_cat
-                            if target_cat in ["STOT SE 3", "STOT SE 3 (Narcotic)"]:
-                                sum_cat = "STOT SE 3"
-                            add_contribution(sum_cat, conc, sub_name, f" [{h_code}]")
-                        elif conc >= gcl:
-                            add_contribution(
-                                target_cat, conc, sub_name, f" (>= GCL {gcl}%)"
-                            )
-
-                    processed_groups.add(group)
+                    # Aditivní skupiny
+                    is_additive = group in ["Skin", "Eye", "Aquatic"] or h_code in ["H335", "H336"]
+                    
+                    if is_additive:
+                        sum_cat = target_cat
+                        if target_cat in ["STOT SE 3", "STOT SE 3 (Narcotic)"]:
+                             sum_cat = "STOT SE 3"
+                        
+                        # Pokud už byl tento target_cat přidán jako "Forced by SCL" v kroku 2, 
+                        # tak ho nechceme přičítat znovu do sumy? 
+                        # NEBO chceme, ale musíme dát pozor.
+                        # Obvykle: Pokud je látka klasifikována jako Skin Corr 1 (kvůli SCL), 
+                        # přispívá do Skin Irrit 2?
+                        # Ano, Skin Corr 1 přispívá do Skin Irrit 2 s váhou 10 (resp. weighted).
+                        
+                        # Zde pouze sčítáme příspěvky. 
+                        # Pokud je "Forced", tak už tam je celá kategorie splněná.
+                        # Ale my potřebujeme hlavně příspěvky do NIŽŠÍCH kategorií (např. Corr 1 -> Irrit 2).
+                        
+                        add_contribution(sum_cat, effective_conc, sub_name, note)
+                    
+                    elif conc >= standard_limit:
+                         # Neaditivní, ale překročilo GCL (a nemá SCL které by to force-lo, nebo jsme v else)
+                         # Pokud má SCL, řešilo se v kroku 2.
+                         # Pokud nemá SCL, řešíme zde.
+                         if not scl_limit_val: # Jen pokud to nebylo řešeno přes SCL
+                            add_contribution(target_cat, conc, sub_name, f" (>= GCL {standard_limit}%)")
 
         # 3. Aspirační toxicita (speciální pravidlo)
         if substance.health_h_phrases and "H304" in substance.health_h_phrases:
@@ -427,6 +527,17 @@ def classify_by_concentration_limits(
         log_entries = []
 
         hazard_totals = _calculate_hazard_totals(mixture)
+
+        # 0. Extreme pH Check
+        if mixture.ph is not None:
+            if mixture.ph <= 2 or mixture.ph >= 11.5:
+                health_hazards.add("H314")
+                health_ghs.add("GHS05")
+                log_entries.append({
+                    "step": "pH check",
+                    "detail": f"Hodnota pH={mixture.ph}",
+                    "result": "H314 (Skin Corr. 1)"
+                })
 
         # 1. Skin & Eye
         _evaluate_skin_eye_hazards(

@@ -4,6 +4,8 @@ from app.models import Mixture
 from .ate import calculate_mixture_ate, classify_by_atemix
 from .health import classify_by_concentration_limits
 from .env import classify_environmental_hazards
+from .physical import evaluate_flammable_liquids
+from .p_phrases import assign_p_phrases
 
 
 def get_signal_word(ghs_codes: Set, h_phrases: Set = None) -> Optional[str]:
@@ -30,6 +32,8 @@ def get_signal_word(ghs_codes: Set, h_phrases: Set = None) -> Optional[str]:
         "H360",
         "H370",
         "H372",
+        "H224",
+        "H225",
     ]
     if (
         any(h in h_phrases for h in danger_h)
@@ -52,6 +56,7 @@ def get_signal_word(ghs_codes: Set, h_phrases: Set = None) -> Optional[str]:
         "H373",
         "H335",
         "H336",
+        "H226",
     ]
     if (
         any(h in h_phrases for h in warning_h)
@@ -137,9 +142,18 @@ def run_clp_classification(mixture: Mixture) -> None:
             env_h, env_ghs = set(), set()
             all_log.append({"step": "Chyba Env", "detail": str(e), "result": "ERROR"})
 
+        # 3.5 Physical Hazards
+        phys_h, phys_ghs = set(), set()
+        try:
+            if mixture.physical_state and hasattr(mixture.physical_state, 'value') and mixture.physical_state.value == 'liquid':
+                 phys_h, phys_ghs, phys_log = evaluate_flammable_liquids(mixture.flash_point, mixture.boiling_point)
+                 all_log.extend(phys_log)
+        except Exception as e:
+             all_log.append({"step": "Chyba Fyzikální", "detail": str(e), "result": "ERROR"})
+        
         # Merge results
-        total_h = ate_h | health_h | env_h
-        total_ghs = ate_ghs | health_ghs | env_ghs
+        total_h = ate_h | health_h | env_h | phys_h
+        total_ghs = ate_ghs | health_ghs | env_ghs | phys_ghs
 
         # 4. EUH Phrases
         from .euh import classify_euh_phrases
@@ -156,9 +170,16 @@ def run_clp_classification(mixture: Mixture) -> None:
         # Article 26 Priorities
         final_ghs = apply_article_26_priorities(total_ghs, total_h)
 
+        # P-Phrases
+        final_p_codes = assign_p_phrases(total_h, mixture.user_type)
+        mixture.final_precautionary_statements = ", ".join(final_p_codes)
+
         # Save to model
         mixture.final_health_hazards = ", ".join(
             sorted([h for h in total_h if h.startswith("H3")])
+        )
+        mixture.final_physical_hazards = ", ".join(
+            sorted([h for h in total_h if h.startswith("H2")])
         )
         mixture.final_environmental_hazards = ", ".join(
             sorted([h for h in total_h if h.startswith("H4")])

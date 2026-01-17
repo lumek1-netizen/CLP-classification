@@ -5,82 +5,188 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<!-- Page Header (Sticky) -->
+<div class="page-header">
+    <div class="page-header__content">
+        <div class="page-title-group">
+            <div class="breadcrumbs">
+                <a href="{{ url_for('mixtures.index') }}" class="text-muted" style="text-decoration: none;">Směsi</a>
+                <span class="text-secondary">/</span>
+                <span>{{ 'Editace' if mixture else 'Nová' }}</span>
+            </div>
+            <h1 class="page-title">
+                {% if mixture %}Editovat: {{ mixture.name }}{% else %}Nová Směs{% endif %}
+            </h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('mixtures.index') }}" class="button button-secondary">Zrušit</a>
+            <button type="submit" form="mixture-form" class="button button-primary">
+                {{ '💾 Uložit Změny' if mixture else '✅ Vytvořit Směs' }}
+            </button>
+        </div>
+    </div>
+</div>
 
-    <h1>{% if mixture %}📝 Editovat Směs: **{{ mixture.name }}**{% else %}➕ Vytvořit Novou Směs{% endif %}</h1>
+<div class="container">
 
-    <hr>
-
-    <form method="POST"
-        action="{% if mixture %}{{ url_for('mixtures.edit', mixture_id=mixture.id) }}{% else %}{{ url_for('mixtures.create') }}{% endif %}">
-        {{ form.hidden_tag() }}
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-6">
         {% for category, message in messages %}
         <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
         {% endfor %}
-        {% endif %}
-        {% endwith %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
-        <div class="form-card mb-4">
-            <h3>🏷️ Základní Informace o Směsi</h3>
+    <form method="POST" id="mixture-form"
+        action="{% if mixture %}{{ url_for('mixtures.edit', mixture_id=mixture.id) }}{% else %}{{ url_for('mixtures.create') }}{% endif %}">
+        {{ form.hidden_tag() }}
 
-            <div class="form-group">
-                <label for="name">Název Směsi <span class="text-danger">*</span></label>
-                {{ form.name(id="name", placeholder="Např. Čistící prostředek XYZ", required=True) }}
-                {% for error in form.name.errors %}
-                <small class="text-danger">{{ error }}</small>
-                {% endfor %}
+        <div class="grid-dashboard">
+            <!-- Main Column -->
+            <div class="col-main">
+
+                <!-- 1. Basic Info Card -->
+                <section class="card mb-6">
+                    <div class="card__header">
+                        <h2 class="card__title">🏷️ Základní Informace</h2>
+                    </div>
+                    <div class="card__body">
+                        <div class="form-group mb-4">
+                            <label for="name" class="font-bold mb-1 d-block">Název Směsi <span
+                                    class="text-danger">*</span></label>
+                            {{ form.name(id="name", class="form-control", placeholder="Např. Čistící prostředek XYZ",
+                            required=True) }}
+                            {% for error in form.name.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="user_type" class="font-bold mb-1 d-block">{{ form.user_type.label }}
+                                <span class="text-danger">*</span></label>
+                            {{ form.user_type(class="form-control", id="user_type") }}
+                            <small class="text-muted">{{ form.user_type.description }}</small>
+                            {% for error in form.user_type.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="physical_state" class="font-bold mb-1 d-block">{{ form.physical_state.label }}
+                                <span class="text-danger">*</span></label>
+                            {{ form.physical_state(class="form-control", id="physical_state") }}
+                            {% for error in form.physical_state.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row" id="liquid-properties" style="display: none;">
+                            <div class="col-md-6 form-group mb-4">
+                                <label for="flash_point" class="font-bold mb-1 d-block">{{ form.flash_point.label
+                                    }}</label>
+                                {{ form.flash_point(class="form-control", id="flash_point", placeholder="např. 23.0") }}
+                                <small class="text-muted">{{ form.flash_point.description }}</small>
+                            </div>
+                            <div class="col-md-6 form-group mb-4">
+                                <label for="boiling_point" class="font-bold mb-1 d-block">{{ form.boiling_point.label
+                                    }}</label>
+                                {{ form.boiling_point(class="form-control", id="boiling_point", placeholder="např.
+                                78.0") }}
+                                <small class="text-muted">{{ form.boiling_point.description }}</small>
+                            </div>
+                            <div class="col-12 form-group mb-4">
+                                <div class="form-check">
+                                    {{ form.can_generate_mist(class="form-check-input", id="can_generate_mist") }}
+                                    <label class="form-check-label font-bold" for="can_generate_mist">
+                                        {{ form.can_generate_mist.label }}
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block ms-4">{{ form.can_generate_mist.description }}</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ph" class="font-bold mb-1 d-block">{{ form.ph.label }}</label>
+                            {{ form.ph(class="form-control", id="ph", placeholder="Např. 7.0") }}
+                            <small class="text-muted text-sm mt-1 d-block">{{ form.ph.description }}</small>
+                            {% for error in form.ph.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Components Card -->
+                <section class="card">
+                    <div class="card__header justify-content-between">
+                        <h2 class="card__title">🧪 Složení Směsi</h2>
+                        <button type="button" id="add-component-button" class="button button-secondary button-small">
+                            ➕ Přidat Složku
+                        </button>
+                    </div>
+                    <div class="card__body">
+
+                        <!-- Header Row -->
+                        <div class="d-grid gap-4 mb-2 text-muted text-sm font-bold px-2"
+                            style="grid-template-columns: 2fr 1fr 40px;">
+                            <div>Látka</div>
+                            <div>Koncentrace (%)</div>
+                            <div></div>
+                        </div>
+
+                        <div id="components-container" class="d-flex flex-column gap-2">
+                            <!-- Rows will be added here by JS -->
+                        </div>
+
+                        <div class="mt-4 p-4 bg-secondary rounded border border-color text-sm text-secondary">
+                            <p class="mb-0">ℹ️ <strong>Tip:</strong> Celková koncentrace by neměla přesáhnout 100 %.
+                                Automatický výpočet ATE proběhne po uložení.</p>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-        </div>
 
-        <div class="form-card mb-4">
-            <h3>🧪 Složení Směsi (Komponenty)</h3>
-
-            <div id="components-container">
-                <div class="group-grid text-muted mb-1" style="grid-template-columns: 2fr 1fr 60px; font-weight: bold;">
-                    <div>Látka</div>
-                    <div>Koncentrace (%)</div>
-                    <div></div>
+            <!-- Sidebar Column (Optional help or summary) -->
+            <aside class="col-sidebar">
+                <div class="card bg-secondary">
+                    <div class="card__body">
+                        <h3 class="text-lg font-bold mb-2">Nápověda</h3>
+                        <p class="text-sm text-muted mb-4">
+                            Pro správnou klasifikaci je nutné zadat přesné složení. Vyberte látky z databáze a zadejte
+                            jejich koncentraci.
+                        </p>
+                        <hr class="mb-4">
+                        <h4 class="text-sm font-bold mb-2">Chybí látka?</h4>
+                        <a href="{{ url_for('substances.create') }}" target="_blank"
+                            class="button button-outline text-sm w-100 mb-2">
+                            Vytvořit novou látku
+                        </a>
+                        <small class="text-xs text-muted">Otevře se v novém okně. Po vytvoření obnovte tuto
+                            stránku.</small>
+                    </div>
                 </div>
-            </div>
-
-            <button type="button" id="add-component-button" class="button button-secondary" style="margin-top: 15px;">
-                ➕ Přidat Složku
-            </button>
-            <p class="text-muted mt-2">Ujistěte se, že celková koncentrace nepřesahuje 100 %.</p>
-        </div>
-
-        <div class="button-group d-flex justify-content-between">
-            <a href="{{ url_for('mixtures.index') }}" class="button button-link">Zpět</a>
-            <button type="submit" class="button button-primary">
-                {{ 'Uložit a Překlasifikovat Směs' if mixture else 'Vytvořit a Klasifikovat Směs' }}
-            </button>
+            </aside>
         </div>
     </form>
-
 </div>
 
 <script>
-    // Předáme data z Flask do JavaScriptu
-    // Zde už nebudou objekty SQLAlchemy, ale pouze čisté slovníky, a proto to funguje.
     const ALL_SUBSTANCES = {{ substances | tojson }};
     const EXISTING_COMPONENTS = {{ existing_components | tojson }};
 
     const componentsContainer = document.getElementById('components-container');
     const addComponentButton = document.getElementById('add-component-button');
-
     let componentCount = 0;
 
-    /**
-     * Vytvoří rozbalovací seznam (dropdown) se všemi látkami.
-     */
     function createSubstanceSelect(selectedValue = null) {
         const select = document.createElement('select');
         select.name = 'substance_id';
         select.required = true;
-        select.classList.add('form-control', 'substance-select');
+        select.classList.add('form-control');
 
         let defaultOption = document.createElement('option');
         defaultOption.value = '';
@@ -97,35 +203,25 @@
             }
             select.appendChild(option);
         });
-
-        if (selectedValue === null) {
-            defaultOption.selected = true;
-        }
-
+        if (selectedValue === null) defaultOption.selected = true;
         return select;
     }
 
-    /**
-     * Vytvoří kompletní řádek pro komponentu (látka + koncentrace + smazání).
-     */
     function addComponentRow(substanceId = null, concentration = null) {
         componentCount++;
 
         const rowDiv = document.createElement('div');
-        rowDiv.classList.add('component-row', 'group-grid', 'mb-2');
-        // Styl pro 3 sloupce: Látka (2 díly), Koncentrace (1 díl), Tlačítko (pevná šířka)
-        rowDiv.style.cssText = 'grid-template-columns: 2fr 1fr 60px; align-items: center;';
+        rowDiv.classList.add('component-row', 'd-grid', 'gap-4', 'align-items-center');
+        rowDiv.style.gridTemplateColumns = '2fr 1fr 40px'; // Matching header
         rowDiv.dataset.id = componentCount;
 
-        // 1. Sloupec: Látka (Dropdown)
+        // 1. Column: Substance Select
         const selectGroup = document.createElement('div');
-        selectGroup.classList.add('form-group-inline'); // Používáme třídu inline pro zarovnání uvnitř buňky
         const select = createSubstanceSelect(substanceId);
         selectGroup.appendChild(select);
 
-        // 2. Sloupec: Koncentrace (%)
+        // 2. Column: Concentration Input
         const concentrationGroup = document.createElement('div');
-        concentrationGroup.classList.add('form-group-inline');
         const input = document.createElement('input');
         input.type = 'number';
         input.name = 'concentration';
@@ -134,24 +230,21 @@
         input.step = '0.001';
         input.placeholder = 'Konc. %';
         input.classList.add('form-control');
-
-        if (concentration !== null) {
-            // Zobrazení koncentrace s přesností na 3 desetinná místa
-            input.value = parseFloat(concentration).toFixed(3);
-        }
+        if (concentration !== null) input.value = parseFloat(concentration).toFixed(3);
         concentrationGroup.appendChild(input);
 
-        // 3. Sloupec: Tlačítko pro odstranění
+        // 3. Column: Delete Button
         const deleteGroup = document.createElement('div');
-        deleteGroup.classList.add('form-group-inline', 'd-flex', 'align-items-center', 'justify-content-center');
+        deleteGroup.classList.add('d-flex', 'justify-content-end');
+
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.innerHTML = '✖️';
         deleteButton.title = 'Odstranit složku';
-        deleteButton.classList.add('button', 'button-danger', 'button-icon-small');
+        deleteButton.classList.add('button', 'button-text', 'text-danger', 'p-0');
+        deleteButton.style.fontSize = '1.2rem';
 
         deleteButton.addEventListener('click', () => {
-            // Směs musí obsahovat alespoň jednu komponentu
             if (componentsContainer.querySelectorAll('.component-row').length > 1) {
                 rowDiv.remove();
             } else {
@@ -166,31 +259,35 @@
         componentsContainer.appendChild(rowDiv);
     }
 
-    /**
-     * Načte existující komponenty při editaci.
-     */
     function loadExistingComponents() {
         if (EXISTING_COMPONENTS && EXISTING_COMPONENTS.length > 0) {
             EXISTING_COMPONENTS.forEach(comp => {
                 addComponentRow(comp.substance_id, comp.concentration);
             });
         }
-
-        // Přidáme jeden prázdný řádek pro novou směs nebo pro snadné přidání nové při editaci
         if (!EXISTING_COMPONENTS || EXISTING_COMPONENTS.length === 0) {
             addComponentRow();
         }
     }
 
-    // Inicializace
-    document.addEventListener('DOMContentLoaded', () => {
-        loadExistingComponents();
-    });
+    document.addEventListener('DOMContentLoaded', loadExistingComponents);
+    addComponentButton.addEventListener('click', () => addComponentRow());
 
-    // Listener pro tlačítko "Přidat Složku"
-    addComponentButton.addEventListener('click', () => {
-        addComponentRow();
-    });
+    // Toggle Liquid Properties
+    const physicalStateSelect = document.getElementById('physical_state');
+    const liquidPropsDiv = document.getElementById('liquid-properties');
+
+    function toggleLiquidProps() {
+        if (physicalStateSelect.value === 'liquid') {
+            liquidPropsDiv.style.display = 'flex';
+        } else {
+            liquidPropsDiv.style.display = 'none';
+        }
+    }
+
+    physicalStateSelect.addEventListener('change', toggleLiquidProps);
+    // Init on load
+    toggleLiquidProps();
 
 </script>
 {% endblock %}

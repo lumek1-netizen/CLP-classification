@@ -1,0 +1,11 @@
+# Production závislosti
+-r base.txt
+
+# Production database
+psycopg2-binary==2.9.9
+
+# Production WSGI server (Linux)
+gunicorn==21.2.0
+
+# Production caching / rate limiting storage
+redis==5.0.1
