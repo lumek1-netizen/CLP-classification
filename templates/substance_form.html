@@ -67,7 +67,13 @@
 
                     <div class="form-group">
                         <label for="cas_number" class="form-label">CAS Číslo</label>
-                        {{ form.cas_number(id="cas_number", class="form-control", placeholder="Např. 64-17-5") }}
+                        <div class="input-group">
+                            {{ form.cas_number(id="cas_number", class="form-control", placeholder="Např. 64-17-5") }}
+                            <button type="button" id="btn_fetch_echa" class="button button-secondary"
+                                title="Ověřit a doplnit data z ECHA databáze">
+                                🔍 Ověřit z ECHA
+                            </button>
+                        </div>
                         {% for error in form.cas_number.errors %}
                         <small class="text-danger">{{ error }}</small>
                         {% endfor %}
@@ -841,5 +847,166 @@
             el.addEventListener('change', checkUnitWarnings);
         }
     });
+
+    // --- ECHA API Fetch Logic ---
+    const btnFetchEcha = document.getElementById('btn_fetch_echa');
+    const casInputNode = document.getElementById('cas_number');
+
+    if (btnFetchEcha && casInputNode) {
+        btnFetchEcha.addEventListener('click', async () => {
+            const query = casInputNode.value.trim();
+            if (!query) {
+                alert('Zadejte prosím CAS číslo.');
+                return;
+            }
+
+            const originalHtml = btnFetchEcha.innerHTML;
+            btnFetchEcha.disabled = true;
+            btnFetchEcha.innerHTML = '⌛ Načítám...';
+
+            try {
+                const response = await fetch('{{ url_for("substances.fetch_echa") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ form.csrf_token.current_token }}'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Nepodařilo se získat data z ECHA.');
+                }
+
+                // 1. Základní info (jen pokud je prázdné)
+                const nameInput = document.getElementById('name');
+                if (nameInput && !nameInput.value.trim()) {
+                    nameInput.value = data.name;
+                }
+
+                // 2. Legislativní statusy
+                const fieldMapping = {
+                    'is_svhc': data.is_svhc,
+                    'is_reach_annex_xiv': data.is_reach_annex_xiv,
+                    'is_reach_annex_xvii': data.is_reach_annex_xvii,
+                    'is_pbt': data.is_pbt,
+                    'is_vpvb': data.is_vpvb,
+                    'is_pmt': data.is_pmt,
+                    'is_vpvm': data.is_vpvm
+                };
+
+                for (const [id, value] of Object.entries(fieldMapping)) {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = value;
+                }
+
+                // 3. SCL (Specifické koncentrační limity)
+                if (data.scl_limits && data.scl_limits.length > 0) {
+                    data.scl_limits.forEach(sclString => {
+                        if (sclString.includes(':')) {
+                            const [hazard, condsStr] = sclString.split(':').map(s => s.trim());
+                            const condsParts = condsStr.split(';').map(s => s.trim());
+                            let c1 = { op: '>=', val: '' };
+                            let c2 = null;
+
+                            condsParts.forEach((cp, idx) => {
+                                const match = cp.match(/^([>=<]+)\s*([\d\.]+)$/);
+                                if (match) {
+                                    if (idx === 0) c1 = { op: match[1], val: match[2] };
+                                    else if (idx === 1) c2 = { op: match[1], val: match[2] };
+                                }
+                            });
+
+                            const currentSclVal = document.getElementById('scl_limits').value;
+                            if (!currentSclVal.includes(sclString)) {
+                                createSclRow(hazard, c1, c2);
+                            }
+                        }
+                    });
+                    serializeScls();
+                }
+
+                // 4. GHS Symboly (Piktogramy)
+                if (data.ghs_symbols && data.ghs_symbols.length > 0) {
+                    // Sloučíme s již vybranými (set pro unikátnost)
+                    const existingGhs = ghsInput.value.split(',').map(s => s.trim()).filter(s => s);
+                    const allGhs = [...new Set([...existingGhs, ...data.ghs_symbols])];
+                    ghsInput.value = allGhs.join(', ');
+                    renderGhsGrid();
+                }
+
+                // 5. H-Věty
+                if (data.h_phrases && data.h_phrases.length > 0) {
+                    data.h_phrases.forEach(hCode => {
+                        // Zdraví
+                        const hEl = document.getElementById('health_' + hCode);
+                        if (hEl) hEl.checked = true;
+
+                        // Prostředí
+                        const eEl = document.getElementById('env_' + hCode);
+                        if (eEl) eEl.checked = true;
+
+                        // Speciální flagy
+                        if (hCode === 'H362') {
+                            const lact = document.getElementById('is_lact');
+                            if (lact) lact.checked = true;
+                        }
+                        if (hCode === 'H420') {
+                            const ozone = document.getElementById('has_ozone');
+                            if (ozone) ozone.checked = true;
+                        }
+                    });
+                }
+
+                // 6. ATE Hodnoty
+                if (data.ate_values) {
+                    const ateForms = {
+                        'oral': 'ate_oral',
+                        'dermal': 'ate_dermal',
+                        'inhalation_gas': 'ate_inhalation_gases',
+                        'inhalation_vapour': 'ate_inhalation_vapours'
+                    };
+
+                    for (const [key, fieldId] of Object.entries(ateForms)) {
+                        const val = data.ate_values[key];
+                        if (val !== undefined) {
+                            const input = document.getElementById(fieldId);
+                            if (input && !input.value) { // Vyplníme jen pokud je prázdné
+                                input.value = val;
+                                // Pokud vyplňujeme plyn, zajistíme správnou jednotku
+                                if (key === 'inhalation_gas') {
+                                    const ppmRadio = document.getElementById('unit_ppm');
+                                    if (ppmRadio) {
+                                        ppmRadio.checked = true;
+                                        updateGasUnitState();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    checkUnitWarnings();
+                }
+
+                btnFetchEcha.classList.remove('button-secondary');
+                btnFetchEcha.classList.add('button-success');
+                btnFetchEcha.innerHTML = '✅ Hotovo';
+
+                setTimeout(() => {
+                    btnFetchEcha.classList.remove('button-success');
+                    btnFetchEcha.classList.add('button-secondary');
+                    btnFetchEcha.innerHTML = originalHtml;
+                    btnFetchEcha.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('ECHA Fetch Error:', error);
+                alert('Chyba: ' + error.message);
+                btnFetchEcha.innerHTML = originalHtml;
+                btnFetchEcha.disabled = false;
+            }
+        });
+    }
 </script>
 {% endblock %}

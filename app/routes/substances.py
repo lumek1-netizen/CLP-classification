@@ -8,6 +8,8 @@ from app.services.substance_service import SubstanceService
 from app.services.validation import validate_substance, check_duplicate_cas, ValidationMessage
 from app.constants.clp import HEALTH_H_PHRASES, ENV_H_PHRASES, SCL_HAZARD_CATEGORIES
 from sqlalchemy.exc import IntegrityError
+from flask import jsonify
+from app.services.echa_service import ECHAService
 
 substances_bp = Blueprint("substances", __name__)
 
@@ -166,3 +168,23 @@ def delete(substance_id):
         db.session.commit()
         flash("Látka byla smazána.", "success")
     return redirect(url_for("substances.index"))
+
+
+@substances_bp.route("/substances/fetch-echa", methods=["POST"])
+@login_required
+@editor_required
+def fetch_echa():
+    """Proxy endpoint pro získání dat z ECHA API."""
+    data = request.get_json()
+    cas_or_ec = data.get("query", "").strip()
+    
+    if not cas_or_ec:
+        return jsonify({"error": "Chybí dotaz (CAS/EC)."}), 400
+        
+    echa_service = ECHAService()
+    result = echa_service.fetch_data(cas_or_ec)
+    
+    if "error" in result:
+        return jsonify(result), 404
+        
+    return jsonify(result)
