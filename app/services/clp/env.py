@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, Set, Any
 from app.models import Mixture
 from .scl import parse_scls, evaluate_scl_condition
+from .ecotoxicity import classify_substance_ecotoxicity
 
 
 def classify_environmental_hazards(
@@ -27,13 +28,86 @@ def classify_environmental_hazards(
     ozone_names = []
     ed_env_names = []
     pbt_pmt_codes = set()
+    
+    # Track processed substances to avoid double counting
+    processed_substances = set()
 
     for component in mixture.components:
         substance = component.substance
         concentration = component.concentration
         sub_name = substance.name
 
-        if substance.env_h_phrases:
+        # NOVÁ LOGIKA: Klasifikace na základě LC50/EC50/NOEC hodnot
+        # Tato klasifikace má přednost před H-phrases, pokud jsou k dispozici ekotoxická data
+        ecotox_result = classify_substance_ecotoxicity(
+            lc50_fish_96h=substance.lc50_fish_96h,
+            ec50_daphnia_48h=substance.ec50_daphnia_48h,
+            ec50_algae_72h=substance.ec50_algae_72h,
+            noec_chronic=substance.noec_chronic,
+            is_rapidly_degradable=False,  # TODO: Přidat pole do DB
+            is_bioaccumulative=False  # TODO: Přidat pole do DB
+        )
+        
+        # Pokud máme výsledky z ekotoxické klasifikace
+        if ecotox_result["h_codes"]:
+            # Mark as processed
+            processed_substances.add(substance.id)
+            
+            # Není třeba přidávat do globálních výsledků pro směs přímo
+            # env_hazards.update(ecotox_result["h_codes"])
+            # env_ghs.update(ecotox_result["ghs_codes"])
+            
+            # Přidat do logu
+            if ecotox_result["acute_category"]:
+                log_entries.append({
+                    "step": f"Ekotoxicita (Acute {ecotox_result['acute_category']})",
+                    "detail": f"{sub_name} ({concentration}%): {ecotox_result['classification_basis']}",
+                    "result": "H400"
+                })
+            
+            if ecotox_result["chronic_category"]:
+                h_code_map = {1: "H410", 2: "H411", 3: "H412", 4: "H413"}
+                log_entries.append({
+                    "step": f"Ekotoxicita (Chronic {ecotox_result['chronic_category']})",
+                    "detail": f"{sub_name} ({concentration}%): {ecotox_result['classification_basis']}",
+                    "result": h_code_map.get(ecotox_result["chronic_category"], "")
+                })
+            
+            # Přidat do sumačních hodnot pro výpočet směsi
+            if ecotox_result["acute_category"] == 1:
+                m_factor = substance.m_factor_acute or 1
+                if concentration >= 0.1:  # GCL limit
+                    sum_acute_1 += concentration * m_factor
+                    contributors_acute_1.append(f"{sub_name} ({concentration}% x M{m_factor})")
+            
+            if ecotox_result["chronic_category"]:
+                m_factor_chronic = substance.m_factor_chronic or 1
+                if ecotox_result["chronic_category"] == 1:
+                    if concentration >= 0.1:
+                        sum_chronic_1 += concentration * m_factor_chronic
+                        contributors_chronic_1.append(f"{sub_name} ({concentration}% x M{m_factor_chronic})")
+                elif ecotox_result["chronic_category"] == 2:
+                    if concentration >= 1.0:
+                        sum_chronic_2 += concentration
+                        contributors_chronic_2.append(f"{sub_name} ({concentration}%)")
+                elif ecotox_result["chronic_category"] == 3:
+                    if concentration >= 1.0:
+                        sum_chronic_3 += concentration
+                        contributors_chronic_3.append(f"{sub_name} ({concentration}%)")
+                elif ecotox_result["chronic_category"] == 4:
+                    if concentration >= 1.0:
+                        sum_chronic_4 += concentration
+                        contributors_chronic_4.append(f"{sub_name} ({concentration}%)")
+
+        # PŮVODNÍ LOGIKA: H-phrases (zůstává jako fallback nebo doplněk)
+        if substance.env_h_phrases and substance.id in processed_substances:
+            log_entries.append({
+                "step": "Skip H-phrases",
+                "detail": f"{sub_name}: Použita primární data o ekotoxicitě, H-věty ignorovány pro výpočet.",
+                "result": "SKIP"
+            })
+
+        if substance.env_h_phrases and substance.id not in processed_substances:
             env_h_codes = [h.strip() for h in substance.env_h_phrases.split(",")]
             
             # SCL vyhodnocení pro životní prostředí
@@ -138,7 +212,7 @@ def classify_environmental_hazards(
                     contributors_chronic_4.append(f"{sub_name} ({concentration}%)")
 
         # 2026 Třídy: Ozone, ED ENV, PBT/PMT
-        if substance.has_ozone and concentration >= 0.1:
+        if substance.env_h_phrases and "H420" in substance.env_h_phrases and concentration >= 0.1:
             ozone_names.append(sub_name)
         
         if substance.ed_env_cat:
@@ -236,7 +310,7 @@ def classify_environmental_hazards(
         elif substance.scl_limits and any(cat in substance.scl_limits for cat in ["Aquatic Acute 1", "Aquatic Chronic 1", "Aquatic Chronic 2", "Aquatic Chronic 3", "Aquatic Chronic 4"]):
              # Simplified check, ideally parse SCLs to be sure
              is_known = True
-        elif substance.has_ozone or substance.ed_env_cat or substance.is_pbt or substance.is_vpvb or substance.is_pmt or substance.is_vpvm:
+        elif substance.ed_env_cat or substance.is_pbt or substance.is_vpvb or substance.is_pmt or substance.is_vpvm:
              is_known = True
         
         if not is_known:

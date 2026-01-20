@@ -5,12 +5,17 @@ CLP_Calculator je webová aplikace vyvinutá v rámci Flasku, která slouží ke
 ## 🚀 Funkce
 
 - **Správa látek**: Evidence chemických látek, jejich CAS čísel, H-vět, GHS piktogramů a M-faktorů.
+- **Ekotoxické parametry**: 
+  - Zadávání standardních testů (LC50, EC50, NOEC) podle CLP Přílohy I, část 4.1.
+  - Automatická klasifikace Aquatic Acute (H400) a Aquatic Chronic (H410-H413).
+  - Podpora pro LC50 ryby (96h), EC50 daphnie (48h), EC50 řasy (72h).
 - **Klasifikace směsí**: 
   - Výpočet akutní toxicity směsi (ATEmix).
+  - Klasifikace environmentálních nebezpečností na základě LC50/EC50 s M-faktory.
   - Klasifikace na základě aditivity (poleptání/podráždění kůže a očí).
   - Klasifikace na základě limitů (CMR, STOT, senzibilizace).
   - Podpora pro specifické koncentrační limity (SCL).
-- **Export a logování**: Detailní logování výpočetních kroků pro každou směs.
+- **Export a logování**: Detailní logování výpočetních kroků pro každou směs včetně ekotoxických klasifikací.
 - **Bezpečnost**: Autentizace uživatelů, CSRF ochrana, validace vstupů.
 
 ## 🛠️ Instalace
@@ -80,6 +85,7 @@ Aplikace využívá **Factory Pattern** pro inicializaci Flasku a je rozdělena 
   - `ate.py`: Výpočty akutní toxicity.
   - `health.py`: Klasifikace zdravotních nebezpečností.
   - `env.py`: Klasifikace nebezpečnosti pro životní prostředí.
+  - `ecotoxicity.py`: Klasifikace na základě LC50/EC50/NOEC hodnot.
   - `scl.py`: Parsování a vyhodnocování SCL.
 - `app/constants/`: Definice CLP limitů, H-vět a převodních tabulek.
 

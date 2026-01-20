@@ -50,6 +50,15 @@ class SubstanceService:
         ate_inhalation_gases = get_float_or_none(form_data, 'ate_inhalation_gases')
         molecular_weight = get_float_or_none(form_data, 'molecular_weight')
         
+        # Ekotoxické parametry - standardní testy CLP
+        lc50_fish_96h = get_float_or_none(form_data, 'lc50_fish_96h')
+        ec50_daphnia_48h = get_float_or_none(form_data, 'ec50_daphnia_48h')
+        ec50_algae_72h = get_float_or_none(form_data, 'ec50_algae_72h')
+        noec_chronic = get_float_or_none(form_data, 'noec_chronic')
+        ld50_oral_mammal = get_float_or_none(form_data, 'ld50_oral_mammal')
+        ld50_dermal_mammal = get_float_or_none(form_data, 'ld50_dermal_mammal')
+        lc50_inhalation_rat_4h = get_float_or_none(form_data, 'lc50_inhalation_rat_4h')
+        
         # M-faktory
         m_factor_acute = get_int_or_default(form_data, 'm_factor_acute', 1)
         m_factor_chronic = get_int_or_default(form_data, 'm_factor_chronic', 1)
@@ -58,14 +67,12 @@ class SubstanceService:
         scl_limits = form_data.get('scl_limits', '').strip() or None
         
         # 2026 třídy nebezpečnosti
-        is_lact = 'is_lact' in form_data
         ed_hh_cat = SubstanceService._parse_ed_category(form_data.get('ed_hh_cat', '0'))
         ed_env_cat = SubstanceService._parse_ed_category(form_data.get('ed_env_cat', '0'))
         is_pbt = 'is_pbt' in form_data
         is_vpvb = 'is_vpvb' in form_data
         is_pmt = 'is_pmt' in form_data
         is_vpvm = 'is_vpvm' in form_data
-        has_ozone = 'has_ozone' in form_data
         is_svhc = 'is_svhc' in form_data
         is_reach_annex_xiv = 'is_reach_annex_xiv' in form_data
         is_reach_annex_xvii = 'is_reach_annex_xvii' in form_data
@@ -83,17 +90,25 @@ class SubstanceService:
             ate_inhalation_dusts_mists=ate_inhalation_dusts_mists,
             ate_inhalation_gases=ate_inhalation_gases,
             molecular_weight=molecular_weight,
+            # Ekotoxické parametry
+            lc50_fish_96h=lc50_fish_96h,
+            ec50_daphnia_48h=ec50_daphnia_48h,
+            ec50_algae_72h=ec50_algae_72h,
+            noec_chronic=noec_chronic,
+            ld50_oral_mammal=ld50_oral_mammal,
+            ld50_dermal_mammal=ld50_dermal_mammal,
+            lc50_inhalation_rat_4h=lc50_inhalation_rat_4h,
+            # M-faktory a SCL
             m_factor_acute=m_factor_acute,
             m_factor_chronic=m_factor_chronic,
             scl_limits=scl_limits,
-            is_lact=is_lact,
+            # 2026 třídy
             ed_hh_cat=ed_hh_cat,
             ed_env_cat=ed_env_cat,
             is_pbt=is_pbt,
             is_vpvb=is_vpvb,
             is_pmt=is_pmt,
             is_vpvm=is_vpvm,
-            has_ozone=has_ozone,
             is_svhc=is_svhc,
             is_reach_annex_xiv=is_reach_annex_xiv,
             is_reach_annex_xvii=is_reach_annex_xvii,
@@ -140,6 +155,15 @@ class SubstanceService:
         substance.ate_inhalation_gases = get_float_or_none(form_data, 'ate_inhalation_gases')
         substance.molecular_weight = get_float_or_none(form_data, 'molecular_weight')
         
+        # Ekotoxické parametry
+        substance.lc50_fish_96h = get_float_or_none(form_data, 'lc50_fish_96h')
+        substance.ec50_daphnia_48h = get_float_or_none(form_data, 'ec50_daphnia_48h')
+        substance.ec50_algae_72h = get_float_or_none(form_data, 'ec50_algae_72h')
+        substance.noec_chronic = get_float_or_none(form_data, 'noec_chronic')
+        substance.ld50_oral_mammal = get_float_or_none(form_data, 'ld50_oral_mammal')
+        substance.ld50_dermal_mammal = get_float_or_none(form_data, 'ld50_dermal_mammal')
+        substance.lc50_inhalation_rat_4h = get_float_or_none(form_data, 'lc50_inhalation_rat_4h')
+        
         # M-faktory
         substance.m_factor_acute = get_int_or_default(form_data, 'm_factor_acute', 1)
         substance.m_factor_chronic = get_int_or_default(form_data, 'm_factor_chronic', 1)
@@ -148,14 +172,12 @@ class SubstanceService:
         substance.scl_limits = form_data.get('scl_limits', '').strip() or None
         
         # 2026 třídy
-        substance.is_lact = 'is_lact' in form_data
         substance.ed_hh_cat = SubstanceService._parse_ed_category(form_data.get('ed_hh_cat', '0'))
         substance.ed_env_cat = SubstanceService._parse_ed_category(form_data.get('ed_env_cat', '0'))
         substance.is_pbt = 'is_pbt' in form_data
         substance.is_vpvb = 'is_vpvb' in form_data
         substance.is_pmt = 'is_pmt' in form_data
         substance.is_vpvm = 'is_vpvm' in form_data
-        substance.has_ozone = 'has_ozone' in form_data
         substance.is_svhc = 'is_svhc' in form_data
         substance.is_reach_annex_xiv = 'is_reach_annex_xiv' in form_data
         substance.is_reach_annex_xvii = 'is_reach_annex_xvii' in form_data

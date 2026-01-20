@@ -117,10 +117,6 @@
                 <hr class="border-color my-4">
                 <h3 class="text-sm font-bold mb-3 text-secondary">Další zdravotní rizika</h3>
                 <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                    <div class="form-check d-flex align-items-center">
-                        {{ form.is_lact(id="is_lact", class="form-check-input mt-0") }}
-                        <label for="is_lact" class="form-check-label ml-2">Laktace (H362)</label>
-                    </div>
                     <div class="form-group">
                         <label for="ed_hh_cat" class="form-label text-sm">{{ form.ed_hh_cat.label.text }}</label>
                         {{ form.ed_hh_cat(id="ed_hh_cat", class="form-control form-control-sm") }}
@@ -150,10 +146,6 @@
                 <hr class="border-color my-4">
                 <h3 class="text-sm font-bold mb-3 text-secondary">Další environmentální rizika</h3>
                 <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                    <div class="form-check d-flex align-items-center">
-                        {{ form.has_ozone(id="has_ozone", class="form-check-input mt-0") }}
-                        <label for="has_ozone" class="form-check-label ml-2">Ozonová vrstva (H420)</label>
-                    </div>
                     <div class="form-group">
                         <label for="ed_env_cat" class="form-label text-sm">{{ form.ed_env_cat.label.text }}</label>
                         {{ form.ed_env_cat(id="ed_env_cat", class="form-control form-control-sm") }}
@@ -367,6 +359,148 @@
                             {% endfor %}
                         </div>
                     </div>
+                </div>
+            </div>
+
+
+            <!-- 6. Ekotoxické parametry (CLP 4.1) -->
+            <div class="card mb-6">
+                <div class="card__header">
+                    <h2 class="card__title">🌊 Ekotoxické parametry (Třída 4.1 - Vodní prostředí)</h2>
+                </div>
+                <div class="card__body">
+                    <p class="text-muted text-sm mb-4">
+                        Standardní testy pro klasifikaci akutní a chronické toxicity pro vodní organismy podle Přílohy
+                        I, část 4.1 nařízení CLP.
+                    </p>
+
+                    <!-- Akutní toxicita - vodní prostředí -->
+                    <fieldset class="mb-5">
+                        <legend class="text-sm font-bold text-primary mb-3">
+                            🐟 Akutní toxicita pro vodní organismy
+                            <span class="text-secondary cursor-help"
+                                title="Standardní testy pro klasifikaci Aquatic Acute kategorie 1">ⓘ</span>
+                        </legend>
+
+                        <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                            <!-- LC50 ryby, 96h -->
+                            <div class="form-group">
+                                <label for="lc50_fish_96h" class="form-label label-with-tooltip">
+                                    LC50 ryby, 96h (mg/L)
+                                    <span class="text-secondary cursor-help"
+                                        title="Letální koncentrace 50% - ryby (např. Danio rerio), 96 hodin">ⓘ</span>
+                                </label>
+                                {{ form.lc50_fish_96h(id="lc50_fish_96h", class="form-control", step="0.001", min="0",
+                                placeholder="Např. 1.0") }}
+                                {% for error in form.lc50_fish_96h.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+
+                            <!-- EC50 daphnie, 48h -->
+                            <div class="form-group">
+                                <label for="ec50_daphnia_48h" class="form-label label-with-tooltip">
+                                    EC50 daphnie, 48h (mg/L)
+                                    <span class="text-secondary cursor-help"
+                                        title="Efektivní koncentrace 50% - Daphnia magna, 48 hodin">ⓘ</span>
+                                </label>
+                                {{ form.ec50_daphnia_48h(id="ec50_daphnia_48h", class="form-control", step="0.001",
+                                min="0", placeholder="Např. 0.5") }}
+                                {% for error in form.ec50_daphnia_48h.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+
+                            <!-- EC50 řasy, 72h -->
+                            <div class="form-group">
+                                <label for="ec50_algae_72h" class="form-label label-with-tooltip">
+                                    EC50 řasy, 72h (mg/L)
+                                    <span class="text-secondary cursor-help"
+                                        title="Efektivní koncentrace 50% - řasy (např. Pseudokirchneriella subcapitata), 72 hodin">ⓘ</span>
+                                </label>
+                                {{ form.ec50_algae_72h(id="ec50_algae_72h", class="form-control", step="0.001", min="0",
+                                placeholder="Např. 0.3") }}
+                                {% for error in form.ec50_algae_72h.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Chronická toxicita -->
+                    <fieldset class="mb-5">
+                        <legend class="text-sm font-bold text-success mb-3">
+                            🌱 Chronická toxicita
+                            <span class="text-secondary cursor-help"
+                                title="Pro klasifikaci Aquatic Chronic kategorií 1-4">ⓘ</span>
+                        </legend>
+
+                        <div class="form-group" style="max-width: 300px;">
+                            <label for="noec_chronic" class="form-label label-with-tooltip">
+                                NOEC (mg/L)
+                                <span class="text-secondary cursor-help"
+                                    title="No Observed Effect Concentration - koncentrace bez pozorovaného účinku">ⓘ</span>
+                            </label>
+                            {{ form.noec_chronic(id="noec_chronic", class="form-control", step="0.001", min="0",
+                            placeholder="Např. 0.1") }}
+                            {% for error in form.noec_chronic.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <!-- Toxicita pro savce -->
+                    <fieldset>
+                        <legend class="text-sm font-bold text-danger mb-3">
+                            🐭 Toxicita pro savce
+                            <span class="text-secondary cursor-help"
+                                title="Pro doplňkovou klasifikaci a výpočty">ⓘ</span>
+                        </legend>
+
+                        <div class="d-grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                            <!-- LD50 orální, savci -->
+                            <div class="form-group">
+                                <label for="ld50_oral_mammal" class="form-label label-with-tooltip">
+                                    LD50 orální, savci (mg/kg)
+                                    <span class="text-secondary cursor-help"
+                                        title="Letální dávka 50% - orální podání, savci (např. potkan)">ⓘ</span>
+                                </label>
+                                {{ form.ld50_oral_mammal(id="ld50_oral_mammal", class="form-control", step="0.01",
+                                min="0", placeholder="Např. 50") }}
+                                {% for error in form.ld50_oral_mammal.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+
+                            <!-- LD50 dermální, savci -->
+                            <div class="form-group">
+                                <label for="ld50_dermal_mammal" class="form-label label-with-tooltip">
+                                    LD50 dermální, savci (mg/kg)
+                                    <span class="text-secondary cursor-help"
+                                        title="Letální dávka 50% - dermální aplikace, savci (např. králík)">ⓘ</span>
+                                </label>
+                                {{ form.ld50_dermal_mammal(id="ld50_dermal_mammal", class="form-control", step="0.01",
+                                min="0", placeholder="Např. 100") }}
+                                {% for error in form.ld50_dermal_mammal.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+
+                            <!-- LC50 inhalace, potkani, 4h -->
+                            <div class="form-group">
+                                <label for="lc50_inhalation_rat_4h" class="form-label label-with-tooltip">
+                                    LC50 inhalace, potkani, 4h (mg/L)
+                                    <span class="text-secondary cursor-help"
+                                        title="Letální koncentrace 50% - inhalace, potkani, 4 hodiny">ⓘ</span>
+                                </label>
+                                {{ form.lc50_inhalation_rat_4h(id="lc50_inhalation_rat_4h", class="form-control",
+                                step="0.001", min="0", placeholder="Např. 5.0") }}
+                                {% for error in form.lc50_inhalation_rat_4h.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </fieldset>
                 </div>
             </div>
 
@@ -947,16 +1081,6 @@
                         // Prostředí
                         const eEl = document.getElementById('env_' + hCode);
                         if (eEl) eEl.checked = true;
-
-                        // Speciální flagy
-                        if (hCode === 'H362') {
-                            const lact = document.getElementById('is_lact');
-                            if (lact) lact.checked = true;
-                        }
-                        if (hCode === 'H420') {
-                            const ozone = document.getElementById('has_ozone');
-                            if (ozone) ozone.checked = true;
-                        }
                     });
                 }
 

@@ -32,15 +32,27 @@ class Substance(db.Model):
     scl_limits = db.Column(db.Text, nullable=True)
     molecular_weight = db.Column(db.Float, nullable=True)  # Pro přepočet mg/l <-> ppm u plynů
 
+    # Ekotoxické parametry (pro klasifikaci dle CLP Příloha I, část 4.1)
+    # Akutní toxicita pro vodní prostředí - standardní testy podle CLP
+    lc50_fish_96h = db.Column(db.Float, nullable=True)  # LC50 ryby, 96h (mg/L)
+    ec50_daphnia_48h = db.Column(db.Float, nullable=True)  # EC50 daphnie, 48h (mg/L)
+    ec50_algae_72h = db.Column(db.Float, nullable=True)  # EC50 řasy, 72h (mg/L)
+    
+    # Chronická toxicita
+    noec_chronic = db.Column(db.Float, nullable=True)  # NOEC (No Observed Effect Concentration) mg/L
+    
+    # Toxicita pro savcí (pro úplný datový set)
+    ld50_oral_mammal = db.Column(db.Float, nullable=True)  # LD50 orální, savci (mg/kg)
+    ld50_dermal_mammal = db.Column(db.Float, nullable=True)  # LD50 dermální, savci (mg/kg)
+    lc50_inhalation_rat_4h = db.Column(db.Float, nullable=True)  # LC50 inhalace, potkani, 4h (mg/L)
+
     # Nové třídy nebezpečnosti (2026 / Nařízení 2023/707)
-    is_lact = db.Column(db.Boolean, default=False)  # H362: Účinky na laktaci
     ed_hh_cat = db.Column(db.Integer, nullable=True)  # Endokrinní disrupce - zdraví (1, 2)
     ed_env_cat = db.Column(db.Integer, nullable=True)  # Endokrinní disrupce - živ. prostř. (1, 2)
     is_pbt = db.Column(db.Boolean, default=False)
     is_vpvb = db.Column(db.Boolean, default=False)
     is_pmt = db.Column(db.Boolean, default=False)
     is_vpvm = db.Column(db.Boolean, default=False)
-    has_ozone = db.Column(db.Boolean, default=False) # H420
     is_svhc = db.Column(db.Boolean, default=False) # Substance of Very High Concern
     is_reach_annex_xiv = db.Column(db.Boolean, default=False) # REACH Příloha XIV
     is_reach_annex_xvii = db.Column(db.Boolean, default=False) # REACH Příloha XVII
@@ -68,6 +80,14 @@ class Substance(db.Model):
         ),
         db.CheckConstraint("m_factor_acute >= 1", name="check_m_acute_positive"),
         db.CheckConstraint("m_factor_chronic >= 1", name="check_m_chronic_positive"),
+        # Ekotoxické parametry - validace nezáporných hodnot
+        db.CheckConstraint("lc50_fish_96h >= 0 OR lc50_fish_96h IS NULL", name="check_lc50_fish_positive"),
+        db.CheckConstraint("ec50_daphnia_48h >= 0 OR ec50_daphnia_48h IS NULL", name="check_ec50_daphnia_positive"),
+        db.CheckConstraint("ec50_algae_72h >= 0 OR ec50_algae_72h IS NULL", name="check_ec50_algae_positive"),
+        db.CheckConstraint("noec_chronic >= 0 OR noec_chronic IS NULL", name="check_noec_positive"),
+        db.CheckConstraint("ld50_oral_mammal >= 0 OR ld50_oral_mammal IS NULL", name="check_ld50_oral_mammal_positive"),
+        db.CheckConstraint("ld50_dermal_mammal >= 0 OR ld50_dermal_mammal IS NULL", name="check_ld50_dermal_mammal_positive"),
+        db.CheckConstraint("lc50_inhalation_rat_4h >= 0 OR lc50_inhalation_rat_4h IS NULL", name="check_lc50_inhalation_rat_positive"),
     )
 
     @validates("cas_number")
@@ -82,6 +102,13 @@ class Substance(db.Model):
         "ate_inhalation_vapours",
         "ate_inhalation_dusts_mists",
         "ate_inhalation_gases",
+        "lc50_fish_96h",
+        "ec50_daphnia_48h",
+        "ec50_algae_72h",
+        "noec_chronic",
+        "ld50_oral_mammal",
+        "ld50_dermal_mammal",
+        "lc50_inhalation_rat_4h",
     )
     def validate_ate(self, key, value):
         if value is not None and value < 0:
@@ -104,15 +131,23 @@ class Substance(db.Model):
             "m_factor_acute": self.m_factor_acute,
             "m_factor_chronic": self.m_factor_chronic,
             "scl_limits": self.scl_limits,
-            "is_lact": self.is_lact,
+
             "ed_hh_cat": self.ed_hh_cat,
             "ed_env_cat": self.ed_env_cat,
             "is_pbt": self.is_pbt,
             "is_vpvb": self.is_vpvb,
             "is_pmt": self.is_pmt,
             "is_vpvm": self.is_vpvm,
-            "has_ozone": self.has_ozone,
+
             "is_svhc": self.is_svhc,
             "is_reach_annex_xiv": self.is_reach_annex_xiv,
             "is_reach_annex_xvii": self.is_reach_annex_xvii,
+            # Ekotoxické parametry
+            "lc50_fish_96h": self.lc50_fish_96h,
+            "ec50_daphnia_48h": self.ec50_daphnia_48h,
+            "ec50_algae_72h": self.ec50_algae_72h,
+            "noec_chronic": self.noec_chronic,
+            "ld50_oral_mammal": self.ld50_oral_mammal,
+            "ld50_dermal_mammal": self.ld50_dermal_mammal,
+            "lc50_inhalation_rat_4h": self.lc50_inhalation_rat_4h,
         }

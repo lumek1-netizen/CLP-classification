@@ -281,8 +281,10 @@ def _calculate_hazard_totals(mixture: Mixture) -> Dict[str, Dict[str, Any]]:
                 add_contribution("Asp. Tox. 1", conc, sub_name, f" (>= {ASPIRATION_HAZARD_THRESHOLD_PERCENT}%)")
 
         # 4. Speciální třídy 2026 (Lact, ED HH)
-        if substance.is_lact and conc >= LACTATION_THRESHOLD_PERCENT:
-            add_contribution("Lact.", conc, sub_name, f" (>= {LACTATION_THRESHOLD_PERCENT}%)")
+        # Laktace (H362) - kontrola v health_h_phrases
+        if substance.health_h_phrases and 'H362' in substance.health_h_phrases:
+            if conc >= LACTATION_THRESHOLD_PERCENT:
+                add_contribution("Lact.", conc, sub_name, f" (>= {LACTATION_THRESHOLD_PERCENT}%)")
         
         if substance.ed_hh_cat:
             cat_name = f"ED HH {substance.ed_hh_cat}"

@@ -46,16 +46,43 @@ class SubstanceForm(FlaskForm):
         "M-faktor chronický", validators=[Optional(), NumberRange(min=1)], default=1, filters=[empty_to_none]
     )
 
+    # Ekotoxické parametry (CLP Příloha I, část 4.1)
+    # Akutní toxicita pro vodní prostředí - standardní testy
+    lc50_fish_96h = FloatField(
+        "LC50 ryby, 96h (mg/L)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    ec50_daphnia_48h = FloatField(
+        "EC50 daphnie, 48h (mg/L)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    ec50_algae_72h = FloatField(
+        "EC50 řasy, 72h (mg/L)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    
+    # Chronická toxicita
+    noec_chronic = FloatField(
+        "NOEC (mg/L)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    
+    # Toxicita pro savce
+    ld50_oral_mammal = FloatField(
+        "LD50 orální, savci (mg/kg)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    ld50_dermal_mammal = FloatField(
+        "LD50 dermální, savci (mg/kg)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+    lc50_inhalation_rat_4h = FloatField(
+        "LC50 inhalace, potkani, 4h (mg/L)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
+    )
+
 
     # Rozšíření 2026
-    is_lact = BooleanField("Účinky na laktaci (H362)")
     ed_hh_cat = SelectField("ED HH (Lidské zdraví)", choices=[(0, "Není"), (1, "ED HH 1"), (2, "ED HH 2")], coerce=int)
     ed_env_cat = SelectField("ED ENV (Živ. prostředí)", choices=[(0, "Není"), (1, "ED ENV 1"), (2, "ED ENV 2")], coerce=int)
     is_pbt = BooleanField("PBT (Perzistentní, biokumulativní, toxická)")
     is_vpvb = BooleanField("vPvB (Vysoce perzistentní, vysoce bioakumulativní)")
     is_pmt = BooleanField("PMT (Perzistentní, mobilní, toxická)")
     is_vpvm = BooleanField("vPvM (Vysoce perzistentní, vysoce mobilní)")
-    has_ozone = BooleanField("Nebezpečná pro ozonovou vrstvu (H420)")
     is_svhc = BooleanField("Je SVHC (Látka vzbuzující mimořádné obavy)")
     is_reach_annex_xiv = BooleanField("REACH Příloha XIV (Povolování)")
     is_reach_annex_xvii = BooleanField("REACH Příloha XVII (Omezení)")
+

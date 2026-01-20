@@ -43,14 +43,12 @@ def export_substances_to_csv(substance_ids: Optional[List[int]] = None) -> str:
         'm_factor_acute',
         'm_factor_chronic',
         'scl_limits',
-        'is_lact',
         'ed_hh_cat',
         'ed_env_cat',
         'is_pbt',
         'is_vpvb',
         'is_pmt',
-        'is_vpvm',
-        'has_ozone'
+        'is_vpvm'
     ]
     
     writer = csv.DictWriter(output, fieldnames=fieldnames)
@@ -72,14 +70,12 @@ def export_substances_to_csv(substance_ids: Optional[List[int]] = None) -> str:
             'm_factor_acute': substance.m_factor_acute or 1,
             'm_factor_chronic': substance.m_factor_chronic or 1,
             'scl_limits': substance.scl_limits or '',
-            'is_lact': '1' if substance.is_lact else '0',
             'ed_hh_cat': substance.ed_hh_cat if substance.ed_hh_cat is not None else '',
             'ed_env_cat': substance.ed_env_cat if substance.ed_env_cat is not None else '',
             'is_pbt': '1' if substance.is_pbt else '0',
             'is_vpvb': '1' if substance.is_vpvb else '0',
             'is_pmt': '1' if substance.is_pmt else '0',
             'is_vpvm': '1' if substance.is_vpvm else '0',
-            'has_ozone': '1' if substance.has_ozone else '0',
         }
         writer.writerow(row)
     
@@ -109,14 +105,12 @@ def generate_csv_template() -> str:
         'm_factor_acute',
         'm_factor_chronic',
         'scl_limits',
-        'is_lact',
         'ed_hh_cat',
         'ed_env_cat',
         'is_pbt',
         'is_vpvb',
         'is_pmt',
-        'is_vpvm',
-        'has_ozone'
+        'is_vpvm'
     ]
     
     writer = csv.DictWriter(output, fieldnames=fieldnames)
@@ -138,14 +132,12 @@ def generate_csv_template() -> str:
             'm_factor_acute': '1',
             'm_factor_chronic': '1',
             'scl_limits': '',
-            'is_lact': '0',
             'ed_hh_cat': '',
             'ed_env_cat': '',
             'is_pbt': '0',
             'is_vpvb': '0',
             'is_pmt': '0',
-            'is_vpvm': '0',
-            'has_ozone': '0'
+            'is_vpvm': '0'
         },
         {
             'name': 'Formaldehyde',
@@ -161,14 +153,12 @@ def generate_csv_template() -> str:
             'm_factor_acute': '1',
             'm_factor_chronic': '1',
             'scl_limits': '',
-            'is_lact': '0',
             'ed_hh_cat': '',
             'ed_env_cat': '',
             'is_pbt': '0',
             'is_vpvb': '0',
             'is_pmt': '0',
-            'is_vpvm': '0',
-            'has_ozone': '0'
+            'is_vpvm': '0'
         }
     ]
     

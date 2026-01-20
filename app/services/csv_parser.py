@@ -247,14 +247,12 @@ def parse_substances_csv(file_stream, valid_h_phrases: set, valid_env_phrases: s
                     'm_factor_acute': parse_int_safe(row.get('m_factor_acute', '')) or 1,
                     'm_factor_chronic': parse_int_safe(row.get('m_factor_chronic', '')) or 1,
                     'scl_limits': row.get('scl_limits', '').strip() or None,
-                    'is_lact': parse_boolean(row.get('is_lact', '')),
                     'ed_hh_cat': parse_int_safe(row.get('ed_hh_cat', '')),
                     'ed_env_cat': parse_int_safe(row.get('ed_env_cat', '')),
                     'is_pbt': parse_boolean(row.get('is_pbt', '')),
                     'is_vpvb': parse_boolean(row.get('is_vpvb', '')),
                     'is_pmt': parse_boolean(row.get('is_pmt', '')),
                     'is_vpvm': parse_boolean(row.get('is_vpvm', '')),
-                    'has_ozone': parse_boolean(row.get('has_ozone', '')),
                 }
                 
                 parsed_substances.append(substance_data)
