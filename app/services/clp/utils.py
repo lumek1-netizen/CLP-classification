@@ -72,32 +72,3 @@ def get_int_or_default(
         return default
 
 
-# Zachování zpětné kompatibility - staré funkce pro přímé hodnoty
-def parse_float_or_none(value: Optional[Union[str, float]]) -> Optional[float]:
-    """
-    Převede string na float nebo vrátí None.
-    
-    DEPRECATED: Použij get_float_or_none(form_data, field_name) místo toho.
-    """
-    if value is None or value == "":
-        return None
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return None
-
-
-def parse_int_or_default(
-    value: Optional[Union[str, int, float]], default: int = 1
-) -> int:
-    """
-    Převede string na celé číslo nebo vrátí default.
-    
-    DEPRECATED: Použij get_int_or_default(form_data, field_name, default) místo toho.
-    """
-    if value is None or value == "":
-        return default
-    try:
-        return int(float(value))
-    except (ValueError, TypeError):
-        return default

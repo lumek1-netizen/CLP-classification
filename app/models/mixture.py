@@ -43,6 +43,7 @@ class Mixture(db.Model):
 
     components = db.relationship(
         "MixtureComponent",
+        primaryjoin="Mixture.id == MixtureComponent.mixture_id",
         back_populates="mixture",
         lazy=True,
         cascade="all, delete-orphan",

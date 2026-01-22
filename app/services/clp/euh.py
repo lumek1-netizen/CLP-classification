@@ -2,17 +2,20 @@ from typing import Set, List, Dict, Tuple
 from app.models import Mixture
 from app.constants.clp import EUH_PHRASES
 
-def classify_euh_phrases(mixture: Mixture, health_hazards: Set[str], env_hazards: Set[str]) -> Tuple[Set[str], List[Dict[str, str]]]:
+def classify_euh_phrases(mixture: Mixture, health_hazards: Set[str], env_hazards: Set[str], components: Optional[List] = None) -> Tuple[Set[str], List[Dict[str, str]]]:
     """
     Vyhodnotí doplňkové EUH věty na základě obsahu látek a výsledné klasifikace.
     """
     euh_codes = set()
     log_entries = []
     
+    # Použít předaný seznam komponent nebo ten z mixture
+    calc_components = components if components is not None else mixture.components
+    
     # 1. EUH208 - Obsahuje (název senzibilizující látky). Může vyvolat alergickou reakci.
     sensitizers_limit_trigger = []
     
-    for component in mixture.components:
+    for component in calc_components:
         sub = component.substance
         conc = component.concentration
         h_phrases = sub.health_h_phrases or ""
@@ -42,7 +45,7 @@ def classify_euh_phrases(mixture: Mixture, health_hazards: Set[str], env_hazards
     pbt_names = []
     pmt_names = []
     
-    for component in mixture.components:
+    for component in calc_components:
         sub = component.substance
         conc = component.concentration
         
@@ -59,7 +62,7 @@ def classify_euh_phrases(mixture: Mixture, health_hazards: Set[str], env_hazards
 
     # 3. EUH210 - Bezpečnostní list na vyžádání
     if not health_hazards and not env_hazards:
-        has_dangerous_sub = any(c.concentration >= 1.0 for c in mixture.components)
+        has_dangerous_sub = any(c.concentration >= 1.0 for c in calc_components)
         if has_dangerous_sub:
             euh_codes.add("EUH210")
 

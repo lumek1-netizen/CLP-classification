@@ -104,6 +104,15 @@ AQUATIC_ACUTE_1_CUTOFF_PERCENT = 0.1
 AQUATIC_CHRONIC_1_CUTOFF_PERCENT = 0.1
 """Cut-off limit pro Aquatic Chronic 1"""
 
+AQUATIC_THRESHOLD_PERCENT = 25.0
+"""Standardní limit pro klasifikaci směsí jako Aquatic Acute/Chronic (25%)"""
+
+AQUATIC_WEIGHT_FACTOR_10 = 10
+"""Váhový faktor pro přepočet mezi kategoriemi (10x)"""
+
+AQUATIC_WEIGHT_FACTOR_100 = 100
+"""Váhový faktor pro přepočet mezi chronic 1 a chronic 3 (100x)"""
+
 
 # ============================================================================
 # GENERAL CUTOFF

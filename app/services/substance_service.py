@@ -41,6 +41,8 @@ class SubstanceService:
         env_list = form_data.getlist("env_h_phrases")
         health_h_phrases = ", ".join(health_list) if health_list else None
         env_h_phrases = ", ".join(env_list) if env_list else None
+        physical_list = form_data.getlist("physical_h_phrases")
+        physical_h_phrases = ", ".join(physical_list) if physical_list else None
         
         # ATE hodnoty
         ate_oral = get_float_or_none(form_data, 'ate_oral')
@@ -84,6 +86,7 @@ class SubstanceService:
             ghs_codes=ghs_codes,
             health_h_phrases=health_h_phrases,
             env_h_phrases=env_h_phrases,
+            physical_h_phrases=physical_h_phrases,
             ate_oral=ate_oral,
             ate_dermal=ate_dermal,
             ate_inhalation_vapours=ate_inhalation_vapours,
@@ -146,6 +149,8 @@ class SubstanceService:
         env_list = form_data.getlist("env_h_phrases")
         substance.health_h_phrases = ", ".join(health_list) if health_list else None
         substance.env_h_phrases = ", ".join(env_list) if env_list else None
+        physical_list = form_data.getlist("physical_h_phrases")
+        substance.physical_h_phrases = ", ".join(physical_list) if physical_list else None
         
         # ATE hodnoty
         substance.ate_oral = get_float_or_none(form_data, 'ate_oral')

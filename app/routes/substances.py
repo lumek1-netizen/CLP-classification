@@ -6,7 +6,7 @@ from app.models import Substance
 from app.forms.substance import SubstanceForm
 from app.services.substance_service import SubstanceService
 from app.services.validation import validate_substance, check_duplicate_cas, ValidationMessage
-from app.constants.clp import HEALTH_H_PHRASES, ENV_H_PHRASES, SCL_HAZARD_CATEGORIES
+from app.constants.clp import HEALTH_H_PHRASES, ENV_H_PHRASES, SCL_HAZARD_CATEGORIES, PHYSICAL_H_PHRASES
 from sqlalchemy.exc import IntegrityError
 from flask import jsonify
 from app.services.echa_service import ECHAService
@@ -92,8 +92,10 @@ def create():
         substance=None,
         health_h_phrases=HEALTH_H_PHRASES,
         env_h_phrases=ENV_H_PHRASES,
+        physical_h_phrases=PHYSICAL_H_PHRASES,
         selected_health_h_phrases=[],
         selected_env_h_phrases=[],
+        selected_physical_h_phrases=[],
         scl_hazard_categories=SCL_HAZARD_CATEGORIES,
         active_tab="substances",
     )
@@ -135,6 +137,11 @@ def edit(substance_id):
         if substance.env_h_phrases
         else []
     )
+    selected_physical = (
+        [h.strip() for h in substance.physical_h_phrases.split(",")]
+        if substance.physical_h_phrases
+        else []
+    )
 
     from app.models.audit import AuditLog
     audit_logs = AuditLog.query.filter_by(
@@ -148,8 +155,10 @@ def edit(substance_id):
         substance=substance,
         health_h_phrases=HEALTH_H_PHRASES,
         env_h_phrases=ENV_H_PHRASES,
+        physical_h_phrases=PHYSICAL_H_PHRASES,
         selected_health_h_phrases=selected_health,
         selected_env_h_phrases=selected_env,
+        selected_physical_h_phrases=selected_physical,
         scl_hazard_categories=SCL_HAZARD_CATEGORIES,
         active_tab="substances",
         audit_logs=audit_logs,

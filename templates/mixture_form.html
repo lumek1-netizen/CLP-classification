@@ -176,49 +176,194 @@
 
 <script>
     const ALL_SUBSTANCES = {{ substances | tojson }};
+    const ALL_MIXTURES = {{ mixtures | tojson }};
     const EXISTING_COMPONENTS = {{ existing_components | tojson }};
 
     const componentsContainer = document.getElementById('components-container');
     const addComponentButton = document.getElementById('add-component-button');
     let componentCount = 0;
 
-    function createSubstanceSelect(selectedValue = null) {
-        const select = document.createElement('select');
-        select.name = 'substance_id';
-        select.required = true;
-        select.classList.add('form-control');
+    function createSearchableComponentInput(componentType = 'substance', selectedId = null) {
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+        container.style.width = '100%';
 
-        let defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '--- Vyberte látku ---';
-        defaultOption.disabled = true;
-        select.appendChild(defaultOption);
+        // Skrytý input pro component_type
+        const typeInput = document.createElement('input');
+        typeInput.type = 'hidden';
+        typeInput.name = 'component_type';
+        typeInput.value = componentType;
+        container.appendChild(typeInput);
 
-        ALL_SUBSTANCES.forEach(substance => {
-            const option = document.createElement('option');
-            option.value = substance.id;
-            option.textContent = `${substance.name} (ID: ${substance.id})`;
-            if (selectedValue !== null && String(substance.id) === String(selectedValue)) {
-                option.selected = true;
+        // Skrytý input pro substance_id
+        const subIdInput = document.createElement('input');
+        subIdInput.type = 'hidden';
+        subIdInput.name = 'substance_id';
+        subIdInput.value = (componentType === 'substance' && selectedId) ? selectedId : '';
+        container.appendChild(subIdInput);
+
+        // Skrytý input pro mixture_id
+        const mixIdInput = document.createElement('input');
+        mixIdInput.type = 'hidden';
+        mixIdInput.name = 'mixture_id';
+        mixIdInput.value = (componentType === 'mixture' && selectedId) ? selectedId : '';
+        container.appendChild(mixIdInput);
+
+        // Viditelný input pro vyhledávání
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.classList.add('form-control');
+        searchInput.placeholder = 'Začněte psát název nebo CAS...';
+        searchInput.autocomplete = 'off';
+
+        // Dropdown pro výsledky
+        const dropdown = document.createElement('div');
+        dropdown.style.position = 'absolute';
+        dropdown.style.top = '100%';
+        dropdown.style.left = '0';
+        dropdown.style.right = '0';
+        dropdown.style.maxHeight = '200px';
+        dropdown.style.overflowY = 'auto';
+        dropdown.style.backgroundColor = 'white';
+        dropdown.style.border = '1px solid #ccc';
+        dropdown.style.borderRadius = '4px';
+        dropdown.style.display = 'none';
+        dropdown.style.zIndex = '1000';
+        dropdown.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+
+        // Nastavit počáteční hodnotu
+        if (selectedId) {
+            const items = componentType === 'substance' ? ALL_SUBSTANCES : ALL_MIXTURES;
+            const selected = items.find(item => item.id == selectedId);
+            if (selected) {
+                if (componentType === 'substance') {
+                    searchInput.value = `${selected.name}${selected.cas_number ? ' (' + selected.cas_number + ')' : ''}`;
+                } else {
+                    searchInput.value = `[Směs] ${selected.name}`;
+                }
             }
-            select.appendChild(option);
+        }
+
+        // Funkce pro filtrování a zobrazení výsledků
+        function showResults(query) {
+            dropdown.innerHTML = '';
+
+            if (!query || query.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            let results = [];
+
+            // Vyhledat v látkách
+            const substanceResults = ALL_SUBSTANCES.filter(s =>
+                s.name.toLowerCase().includes(lowerQuery) ||
+                (s.cas_number && s.cas_number.includes(lowerQuery))
+            ).slice(0, 10).map(s => ({
+                type: 'substance',
+                id: s.id,
+                name: s.name,
+                cas: s.cas_number,
+                display: `${s.name}${s.cas_number ? ' (' + s.cas_number + ')' : ''}`
+            }));
+
+            // Vyhledat ve směsích
+            const mixtureResults = ALL_MIXTURES.filter(m =>
+                m.name.toLowerCase().includes(lowerQuery)
+            ).slice(0, 5).map(m => ({
+                type: 'mixture',
+                id: m.id,
+                name: m.name,
+                display: `[Směs] ${m.name}`
+            }));
+
+            results = [...substanceResults, ...mixtureResults];
+
+            if (results.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.style.padding = '8px 12px';
+                noResults.style.color = '#999';
+                noResults.textContent = 'Žádné výsledky';
+                dropdown.appendChild(noResults);
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            results.forEach(result => {
+                const item = document.createElement('div');
+                item.style.padding = '8px 12px';
+                item.style.cursor = 'pointer';
+                item.style.borderBottom = '1px solid #eee';
+                item.textContent = result.display;
+
+                if (result.type === 'mixture') {
+                    item.style.backgroundColor = '#f0f8ff';
+                    item.style.fontWeight = '500';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    item.style.backgroundColor = result.type === 'mixture' ? '#e0f0ff' : '#f5f5f5';
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    item.style.backgroundColor = result.type === 'mixture' ? '#f0f8ff' : 'white';
+                });
+
+                item.addEventListener('click', () => {
+                    searchInput.value = result.display;
+                    typeInput.value = result.type;
+                    if (result.type === 'substance') {
+                        subIdInput.value = result.id;
+                        mixIdInput.value = '';
+                    } else {
+                        mixIdInput.value = result.id;
+                        subIdInput.value = '';
+                    }
+                    dropdown.style.display = 'none';
+                });
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = 'block';
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            showResults(e.target.value);
         });
-        if (selectedValue === null) defaultOption.selected = true;
-        return select;
+
+        searchInput.addEventListener('focus', (e) => {
+            if (e.target.value.length >= 2) {
+                showResults(e.target.value);
+            }
+        });
+
+        // Zavřít dropdown při kliknutí mimo
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        container.appendChild(searchInput);
+        container.appendChild(dropdown);
+
+        return container;
     }
 
-    function addComponentRow(substanceId = null, concentration = null) {
+    function addComponentRow(componentType = 'substance', componentId = null, concentration = null) {
         componentCount++;
 
         const rowDiv = document.createElement('div');
         rowDiv.classList.add('component-row', 'd-grid', 'gap-4', 'align-items-center');
-        rowDiv.style.gridTemplateColumns = '2fr 1fr 40px'; // Matching header
+        rowDiv.style.gridTemplateColumns = '2fr 1fr 40px';
         rowDiv.dataset.id = componentCount;
 
-        // 1. Column: Substance Select
+        // 1. Column: Searchable Component Input
         const selectGroup = document.createElement('div');
-        const select = createSubstanceSelect(substanceId);
-        selectGroup.appendChild(select);
+        const searchableInput = createSearchableComponentInput(componentType, componentId);
+        selectGroup.appendChild(searchableInput);
 
         // 2. Column: Concentration Input
         const concentrationGroup = document.createElement('div');
@@ -262,7 +407,9 @@
     function loadExistingComponents() {
         if (EXISTING_COMPONENTS && EXISTING_COMPONENTS.length > 0) {
             EXISTING_COMPONENTS.forEach(comp => {
-                addComponentRow(comp.substance_id, comp.concentration);
+                const compType = comp.component_type || 'substance';
+                const compId = compType === 'substance' ? comp.substance_id : comp.mixture_id;
+                addComponentRow(compType, compId, comp.concentration);
             });
         }
         if (!EXISTING_COMPONENTS || EXISTING_COMPONENTS.length === 0) {

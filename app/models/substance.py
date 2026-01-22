@@ -17,6 +17,8 @@ class Substance(db.Model):
     ghs_codes = db.Column(db.String(100), nullable=True)  # Piktogramy
     health_h_phrases = db.Column(db.Text, nullable=True)
     env_h_phrases = db.Column(db.Text, nullable=True)
+    physical_h_phrases = db.Column(db.Text, nullable=True)
+
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
@@ -123,6 +125,7 @@ class Substance(db.Model):
             "ghs_codes": self.ghs_codes,
             "health_h_phrases": self.health_h_phrases,
             "env_h_phrases": self.env_h_phrases,
+            "physical_h_phrases": self.physical_h_phrases,
             "ate_oral": self.ate_oral,
             "ate_dermal": self.ate_dermal,
             "ate_inhalation_vapours": self.ate_inhalation_vapours,

@@ -88,19 +88,76 @@ def run_clp_classification(mixture: Mixture) -> None:
     """
     Hlavní orchestrátor klasifikace CLP. 
     Provádí výpočty v krocích:
-    1. Akutní toxicita (ATEmix)
-    2. Zdravotní nebezpečnost (koncentrační limity, aditivita)
-    3. Nebezpečnost pro životní prostředí
-    4. Sloučení výsledků, určení signálního slova a prioritizace symbolů (Článek 26).
+    1. Rozbalení směsí na jednotlivé látky (pokud směs obsahuje jiné směsi)
+    2. Akutní toxicita (ATEmix)
+    3. Zdravotní nebezpečnost (koncentrační limity, aditivita)
+    4. Nebezpečnost pro životní prostředí
+    5. Sloučení výsledků, určení signálního slova a prioritizace symbolů (Článek 26).
     Výsledky jsou uloženy přímo do objektu směsi.
     """
     all_log = []
 
     try:
+        # 0. Rozbalit směsi na látky (pokud směs obsahuje jiné směsi)
+        from app.models import ComponentType
+        from app.services.mixture_service import MixtureService
+        
+        # Získat seznam komponent pro výpočet (buď originální, nebo rozbalené)
+        calc_components = mixture.components
+        
+        has_mixture_components = any(
+            comp.component_type == ComponentType.MIXTURE 
+            for comp in mixture.components
+        )
+        
+        if has_mixture_components:
+            # Rozbalit směsi na látky
+            expanded_substances = MixtureService.expand_mixture_components(mixture.id)
+            
+            # Vytvoříme dočasné komponenty pouze s látkami
+            from app.models import Substance
+            temp_components = []
+            for exp in expanded_substances:
+                # Vytvoříme dočasný objekt podobný MixtureComponent
+                class TempComponent:
+                    def __init__(self, substance_id, concentration):
+                        self.substance_id = substance_id
+                        self.concentration = concentration
+                        self.component_type = ComponentType.SUBSTANCE
+                        self.substance = Substance.query.get(substance_id)
+                
+                temp_components.append(
+                    TempComponent(exp['substance_id'], exp['concentration'])
+                )
+            
+            # Pro výpočet použijeme rozbalené komponenty
+            calc_components = temp_components
+            
+            all_log.append({
+                "step": "Rozbalení směsí",
+                "detail": f"Rozbaleno {len(temp_components)} látek z vnořených směsí",
+                "result": "OK"
+            })
+        
+        # Funkce v modulech ate, health, env bohužel očekávají mixture.components
+        # Musíme dočasně "podvrhnout" komponenty směsi bez vyvolání smazání v DB
+        # To uděláme tak, že budeme klasifikačním funkcím předávat calc_components, 
+        # pokud to umožňují, nebo dočasně modifikujeme objekt mixture jen v paměti.
+        # Nejbezpečnější pro stávající architekturu je přidat argument components do funkcí.
+        # Ale to by vyžadovalo změnu mnoha souborů.
+        # Zkusíme dočasně nahradit mixture.components tak, aby to SQLAlchemy nepovažovala za změnu vztahu.
+        
+        original_components = mixture.components
+        
+        # Místo přímého zásahu do relationship zkusíme vytvořit "virtuální" směs pro výpočet
+        # nebo upravíme funkce, aby braly seznam komponent.
+        
         # 1. ATEmix
         try:
-            atemix_results, ate_log = calculate_mixture_ate(mixture)
+            from .ate import calculate_mixture_ate, classify_by_atemix
+            atemix_results, ate_log = calculate_mixture_ate(mixture, components=calc_components)
             all_log.extend(ate_log)
+
 
             # Update mixture properties
             mixture.final_atemix_oral = atemix_results.get("oral")
@@ -126,7 +183,7 @@ def run_clp_classification(mixture: Mixture) -> None:
 
         # 2. Health (Concentration Limits)
         try:
-            health_h, health_ghs, health_log = classify_by_concentration_limits(mixture)
+            health_h, health_ghs, health_log = classify_by_concentration_limits(mixture, components=calc_components)
             all_log.extend(health_log)
         except Exception as e:
             health_h, health_ghs = set(), set()
@@ -136,7 +193,7 @@ def run_clp_classification(mixture: Mixture) -> None:
 
         # 3. Environment
         try:
-            env_h, env_ghs, env_log = classify_environmental_hazards(mixture)
+            env_h, env_ghs, env_log = classify_environmental_hazards(mixture, components=calc_components)
             all_log.extend(env_log)
         except Exception as e:
             env_h, env_ghs = set(), set()
@@ -158,7 +215,7 @@ def run_clp_classification(mixture: Mixture) -> None:
         # 4. EUH Phrases
         from .euh import classify_euh_phrases
         try:
-            euh_h, euh_log = classify_euh_phrases(mixture, total_h, env_h) # Předáváme i env_h pro EUH210
+            euh_h, euh_log = classify_euh_phrases(mixture, total_h, env_h, components=calc_components)
             total_h |= euh_h
             all_log.extend(euh_log)
         except Exception as e:

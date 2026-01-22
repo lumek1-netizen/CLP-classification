@@ -96,7 +96,27 @@
             </div>
         </div>
 
-        <!-- 2. H-Věty (Zdraví) -->
+        <!-- 2. H-Věty (Fyzikální) -->
+        <div class="card mb-6">
+            <div class="card__header">
+                <h2 class="card__title">💥 H-Věty (Fyzikální nebezpečnost)</h2>
+            </div>
+            <div class="card__body">
+                <div class="checkbox-group" style="column-count: 2; column-gap: 2rem;">
+                    {% for code, description in physical_h_phrases.items() %}
+                    <div class="form-check break-inside-avoid mb-2">
+                        <input class="form-check-input mt-1" type="checkbox" name="physical_h_phrases" value="{{ code }}"
+                            id="physical_{{ code }}" {% if code in selected_physical_h_phrases %}checked{% endif %}>
+                        <label class="form-check-label text-sm leading-tight ml-2" for="physical_{{ code }}">
+                            <strong class="text-danger">{{ code }}</strong>: {{ description }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. H-Věty (Zdraví) -->
         <div class="card mb-6">
             <div class="card__header">
                 <h2 class="card__title">⚕️ H-Věty (Zdraví)</h2>

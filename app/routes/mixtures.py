@@ -56,6 +56,10 @@ def create():
     substance_data = [
         s.to_dict() for s in Substance.query.order_by(Substance.name).all()
     ]
+    mixture_data = [
+        {"id": m.id, "name": m.name} 
+        for m in Mixture.query.order_by(Mixture.name).all()
+    ]
     if form.validate_on_submit():
         try:
             name = form.name.data.strip()
@@ -92,6 +96,7 @@ def create():
         "mixture_form.html",
         form=form,
         substances=substance_data,
+        mixtures=mixture_data,
         mixture=None,
         existing_components=[{}],
         active_tab="mixtures",
@@ -120,14 +125,27 @@ def detail(mixture_id):
     comp_details = []
     total = 0.0
     for comp in mixture.components:
-        comp_details.append(
-            {
-                "substance_name": comp.substance.name,
-                "concentration": comp.concentration,
-                "hazards": comp.substance.health_h_phrases,
-                "env_hazards": comp.substance.env_h_phrases,
-            }
-        )
+        from app.models import ComponentType
+        if comp.component_type == ComponentType.SUBSTANCE:
+            comp_details.append(
+                {
+                    "component_type": "substance",
+                    "substance_name": comp.substance.name if comp.substance else "Unknown",
+                    "concentration": comp.concentration,
+                    "hazards": comp.substance.health_h_phrases if comp.substance else "",
+                    "env_hazards": comp.substance.env_h_phrases if comp.substance else "",
+                }
+            )
+        elif comp.component_type == ComponentType.MIXTURE:
+            comp_details.append(
+                {
+                    "component_type": "mixture",
+                    "substance_name": f"[Směs] {comp.component_mixture.name}" if comp.component_mixture else "Unknown Mixture",
+                    "concentration": comp.concentration,
+                    "hazards": "",
+                    "env_hazards": "",
+                }
+            )
         total += comp.concentration
     return render_template(
         "mixture_detail.html",
@@ -150,10 +168,26 @@ def edit(mixture_id):
     substance_data = [
         s.to_dict() for s in Substance.query.order_by(Substance.name).all()
     ]
-    existing = [
-        {"substance_id": c.substance_id, "concentration": c.concentration}
-        for c in mixture.components
+    mixture_data = [
+        {"id": m.id, "name": m.name} 
+        for m in Mixture.query.filter(Mixture.id != mixture_id).order_by(Mixture.name).all()
     ]
+    
+    from app.models import ComponentType
+    existing = []
+    for c in mixture.components:
+        if c.component_type == ComponentType.SUBSTANCE:
+            existing.append({
+                "component_type": "substance",
+                "substance_id": c.substance_id,
+                "concentration": c.concentration
+            })
+        elif c.component_type == ComponentType.MIXTURE:
+            existing.append({
+                "component_type": "mixture",
+                "mixture_id": c.component_mixture_id,
+                "concentration": c.concentration
+            })
 
     if form.validate_on_submit():
         try:
@@ -161,7 +195,7 @@ def edit(mixture_id):
             mixture.ph = form.ph.data
             
             # Parsování a validace komponent pomocí service layer
-            components = MixtureService.parse_and_validate_components(request.form)
+            components = MixtureService.parse_and_validate_components(request.form, mixture_id=mixture.id)
 
             # Odstranění starých komponent
             MixtureComponent.query.filter_by(mixture_id=mixture.id).delete()
@@ -189,6 +223,7 @@ def edit(mixture_id):
         "mixture_form.html",
         form=form,
         substances=substance_data,
+        mixtures=mixture_data,
         mixture=mixture,
         existing_components=existing,
         active_tab="mixtures",
