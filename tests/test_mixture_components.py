@@ -126,7 +126,7 @@ def test_circular_dependency_detection(app):
         db.session.commit()
         
         # Pokus o přidání Mixture A do Mixture B (cyklus)
-        with pytest.raises(ValueError, match="cyklick"):
+        with pytest.raises(ValueError, match="(?i)cyklick"):
             MixtureService.validate_no_circular_dependency(mixture2.id, mixture1.id)
 
 
@@ -134,8 +134,8 @@ def test_expand_mixture_components(app):
     """Test rozbalení směsí na látky."""
     with app.app_context():
         # Vytvořit látky
-        sub1 = Substance(name="Substance 1", cas_number="1-1-1")
-        sub2 = Substance(name="Substance 2", cas_number="2-2-2")
+        sub1 = Substance(name="Substance 1", cas_number="11-11-1")
+        sub2 = Substance(name="Substance 2", cas_number="22-22-2")
         db.session.add_all([sub1, sub2])
         db.session.commit()
         
@@ -203,5 +203,5 @@ def test_self_reference_prevention(app):
         db.session.add(mixture)
         db.session.flush()
         
-        with pytest.raises(ValueError, match="sama sebe"):
+        with pytest.raises(ValueError, match="(?i)sama sebe"):
             MixtureService.validate_no_circular_dependency(mixture.id, mixture.id)

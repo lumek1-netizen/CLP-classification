@@ -105,10 +105,14 @@ def run_clp_classification(mixture: Mixture) -> None:
         # Získat seznam komponent pro výpočet (buď originální, nebo rozbalené)
         calc_components = mixture.components
         
-        has_mixture_components = any(
-            comp.component_type == ComponentType.MIXTURE 
-            for comp in mixture.components
-        )
+        has_mixture_components = False
+        for comp in mixture.components:
+            # Robustnější kontrola typu: zvládne Enum i řetězec z DB
+            if (comp.component_type == ComponentType.MIXTURE or 
+                str(comp.component_type).lower() == "componenttype.mixture" or
+                str(comp.component_type).lower() == "mixture"):
+                has_mixture_components = True
+                break
         
         if has_mixture_components:
             # Rozbalit směsi na látky
@@ -126,17 +130,24 @@ def run_clp_classification(mixture: Mixture) -> None:
                         self.component_type = ComponentType.SUBSTANCE
                         self.substance = Substance.query.get(substance_id)
                 
-                temp_components.append(
-                    TempComponent(exp['substance_id'], exp['concentration'])
-                )
+                if exp.get('substance_id'):
+                    temp_components.append(
+                        TempComponent(exp['substance_id'], exp['concentration'])
+                    )
             
             # Pro výpočet použijeme rozbalené komponenty
             calc_components = temp_components
             
             all_log.append({
                 "step": "Rozbalení směsí",
-                "detail": f"Rozbaleno {len(temp_components)} látek z vnořených směsí",
+                "detail": f"Rozbaleno na {len(temp_components)} látek z vnořených směsí",
                 "result": "OK"
+            })
+        else:
+            all_log.append({
+                "step": "Rozbalení směsí",
+                "detail": "Směs neobsahuje vnořené směsi, rozbalení není nutné",
+                "result": "SKIP"
             })
         
         # Funkce v modulech ate, health, env bohužel očekávají mixture.components

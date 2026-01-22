@@ -161,22 +161,29 @@ class MixtureService:
         visited.add(component_mixture_id)
         
         # Získat všechny komponenty typu mixture z component_mixture_id
-        sub_components = MixtureComponent.query.filter_by(
-            mixture_id=component_mixture_id,
-            component_type=ComponentType.MIXTURE
+        # Robustnější kontrola typu (Enum nebo string)
+        sub_components = MixtureComponent.query.filter(
+            MixtureComponent.mixture_id == component_mixture_id,
+            db.or_(
+                MixtureComponent.component_type == ComponentType.MIXTURE,
+                MixtureComponent.component_type == "mixture"
+            )
         ).all()
         
         # Rekurzivně zkontrolovat každou pod-směs
         for comp in sub_components:
-            if comp.component_mixture_id == mixture_id:
+            # Opět robustnější kontrola ID a typu
+            target_mix_id = getattr(comp, 'component_mixture_id', None)
+            if target_mix_id == mixture_id:
                 raise ValueError(
                     f"Cyklická závislost: směs {component_mixture_id} již obsahuje směs {mixture_id}"
                 )
-            MixtureService.validate_no_circular_dependency(
-                mixture_id, 
-                comp.component_mixture_id, 
-                visited.copy()
-            )
+            if target_mix_id:
+                MixtureService.validate_no_circular_dependency(
+                    mixture_id, 
+                    target_mix_id, 
+                    visited.copy()
+                )
     
     @staticmethod
     def expand_mixture_components(mixture_id: int) -> List[Dict[str, Any]]:
@@ -211,14 +218,23 @@ class MixtureService:
                 # Vypočítat efektivní koncentraci vzhledem k rodičovské směsi
                 effective_concentration = (comp.concentration * parent_concentration) / 100.0
                 
-                if comp.component_type == ComponentType.SUBSTANCE:
+                # Robustnější kontrola typu: zvládne Enum i řetězec z DB
+                is_substance = (comp.component_type == ComponentType.SUBSTANCE or 
+                               str(comp.component_type).lower() == "componenttype.substance" or
+                               str(comp.component_type).lower() == "substance")
+                               
+                is_mixture = (comp.component_type == ComponentType.MIXTURE or 
+                             str(comp.component_type).lower() == "componenttype.mixture" or
+                             str(comp.component_type).lower() == "mixture")
+
+                if is_substance and comp.substance_id:
                     # Je to látka - přidat/akumulovat koncentraci
                     if comp.substance_id in substance_concentrations:
                         substance_concentrations[comp.substance_id] += effective_concentration
                     else:
                         substance_concentrations[comp.substance_id] = effective_concentration
                         
-                elif comp.component_type == ComponentType.MIXTURE:
+                elif is_mixture and comp.component_mixture_id:
                     # Je to směs - rekurzivně rozbalit
                     expand_recursive(comp.component_mixture_id, effective_concentration)
         
