@@ -1,4 +1,4 @@
-from typing import Set, List, Dict, Tuple
+from typing import Set, List, Dict, Tuple, Optional
 from app.models import Mixture
 from app.constants.clp import EUH_PHRASES
 
