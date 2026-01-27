@@ -110,7 +110,7 @@
 
                         <div class="form-group">
                             <label for="ph" class="font-bold mb-1 d-block">{{ form.ph.label }}</label>
-                            {{ form.ph(class="form-control", id="ph", placeholder="Např. 7.0") }}
+                            {{ form.ph(class="form-control flexible-float", id="ph", placeholder="Např. 7.0") }}
                             <small class="text-muted text-sm mt-1 d-block">{{ form.ph.description }}</small>
                             {% for error in form.ph.errors %}
                             <small class="text-danger">{{ error }}</small>
@@ -174,7 +174,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     const ALL_SUBSTANCES = {{ substances | tojson }};
     const ALL_MIXTURES = {{ mixtures | tojson }};
     const EXISTING_COMPONENTS = {{ existing_components | tojson }};

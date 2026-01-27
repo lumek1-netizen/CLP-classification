@@ -1,6 +1,14 @@
+"""
+Model role.
+
+Definuje uživatelské role pro RBAC (Role-Based Access Control).
+"""
 from app.extensions import db
 
 class Role(db.Model):
+    """
+    Model uživatelské role (např. 'admin', 'user').
+    """
     __tablename__ = "role"
 
     id = db.Column(db.Integer, primary_key=True)

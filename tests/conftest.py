@@ -44,7 +44,13 @@ def runner(app):
 def auth_client(client, app):
     # Vytvoření testovacího uživatele a přihlášení
     with app.app_context():
-        user = User(username="testuser")
+        # Create role if not exists (or just create new one for test isolation)
+        from app.models import Role
+        role = Role(name="editor")
+        db.session.add(role)
+        db.session.commit()
+
+        user = User(username="testuser", role_id=role.id)
         user.set_password("testpass")
         db.session.add(user)
         db.session.commit()

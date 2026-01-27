@@ -1,3 +1,8 @@
+"""
+Model chemické látky (Substance).
+
+Definuje strukturu dat pro látky, včetně klasifikačních dat (H-věty, ATE, ekotoxicita).
+"""
 from sqlalchemy.orm import validates
 import re
 from app.extensions import db

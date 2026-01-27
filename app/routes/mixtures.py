@@ -1,3 +1,9 @@
+"""
+Správa směsí (Mixtures).
+
+Endpointy pro výpis, tvorbu, editaci a mazání směsí.
+Zajišťuje také zobrazení detailu a spouštění klasifikace při uložení.
+"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from sqlalchemy import or_
 from flask_login import login_required
@@ -17,6 +23,9 @@ mixtures_bp = Blueprint("mixtures", __name__)
 @mixtures_bp.route("/")
 @login_required
 def index():
+    """
+    Hlavní stránka se seznamem směsí a vyhledáváním.
+    """
     q = request.args.get("q", "").strip()
     page = request.args.get("page", 1, type=int)
     per_page = 10

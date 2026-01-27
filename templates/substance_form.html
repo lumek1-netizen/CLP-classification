@@ -105,8 +105,9 @@
                 <div class="checkbox-group" style="column-count: 2; column-gap: 2rem;">
                     {% for code, description in physical_h_phrases.items() %}
                     <div class="form-check break-inside-avoid mb-2">
-                        <input class="form-check-input mt-1" type="checkbox" name="physical_h_phrases" value="{{ code }}"
-                            id="physical_{{ code }}" {% if code in selected_physical_h_phrases %}checked{% endif %}>
+                        <input class="form-check-input mt-1" type="checkbox" name="physical_h_phrases"
+                            value="{{ code }}" id="physical_{{ code }}" {% if code in selected_physical_h_phrases
+                            %}checked{% endif %}>
                         <label class="form-check-label text-sm leading-tight ml-2" for="physical_{{ code }}">
                             <strong class="text-danger">{{ code }}</strong>: {{ description }}
                         </label>
@@ -230,7 +231,8 @@
                         <span class="text-secondary cursor-help"
                             title="Nutné pro přepočet jednotek u plynů (mg/l <-> ppm)">ⓘ</span>
                     </label>
-                    {{ form.molecular_weight(id="molecular_weight", class="form-control", step="0.01", min="0",
+                    {{ form.molecular_weight(id="molecular_weight", class="form-control flexible-float", step="0.01",
+                    min="0",
                     placeholder="Např. 44.01") }}
                     {% for error in form.molecular_weight.errors %}
                     <small class="text-danger">{{ error }}</small>
@@ -656,7 +658,7 @@
     }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // --- GHS Selection Logic ---
     const GHS_DATA = [
         { code: 'GHS01', desc: 'Výbušné', img: '{{ url_for("static", filename="GHS_Symbols/GHS01.gif") }}' },

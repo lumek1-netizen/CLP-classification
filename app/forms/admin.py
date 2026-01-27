@@ -1,9 +1,17 @@
+"""
+Formuláře pro administraci.
+
+Obsahuje formuláře pro správu uživatelů a rolí.
+"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from app.models.user import User
 
 class UserCreateForm(FlaskForm):
+    """
+    Formulář pro vytvoření nového uživatele adminem.
+    """
     username = StringField("Uživatelské jméno", validators=[
         DataRequired(message="Uživatelské jméno je povinné."),
         Length(min=3, max=80, message="Jméno musí mít 3 až 80 znaků.")

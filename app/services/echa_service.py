@@ -23,7 +23,18 @@ class ECHAService:
 
     def fetch_data(self, cas_or_ec):
         """
-        Hlavní metoda pro získání všech relevantních dat o látce podle CAS/EC.
+        Získá kompletní data o látce z ECHA API.
+        
+        Metoda stahuje:
+        1. Základní info a ID látky.
+        2. Harmonizovanou klasifikaci (C&L).
+        3. Legislativní povinnosti (SVHC, PBT, atd.).
+        
+        Args:
+            cas_or_ec: CAS nebo EC číslo látky.
+            
+        Returns:
+            Dict s daty látky nebo dict s klíčem 'error'.
         """
         try:
             substance_id = self._get_substance_id(cas_or_ec)

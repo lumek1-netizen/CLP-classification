@@ -53,7 +53,7 @@
         </div>
     </header>
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         document.addEventListener('DOMContentLoaded', function () {
             const toggle = document.getElementById('mobile-menu-toggle');
             const menu = document.getElementById('nav-menu');
@@ -64,6 +64,18 @@
                     toggle.classList.toggle('active');
                 });
             }
+
+            // Flexible Float Inputs - Auto replace comma with dot
+            document.querySelectorAll('.flexible-float').forEach(input => {
+                input.addEventListener('input', function (e) {
+                    if (this.value.includes(',')) {
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        this.value = this.value.replace(/,/g, '.');
+                        this.setSelectionRange(start, end);
+                    }
+                });
+            });
         });
     </script>
     <main class="container">

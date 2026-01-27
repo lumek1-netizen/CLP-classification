@@ -1,3 +1,8 @@
+"""
+Správa dat (Import/Export).
+
+Endpointy pro hromadný JSON import/export databáze a CSV operace s látkami.
+"""
 from flask import (
     Blueprint,
     render_template,
@@ -26,6 +31,9 @@ data_bp = Blueprint("data", __name__)
 @data_bp.route("/data/management")
 @login_required
 def management():
+    """
+    Zobrazí rozcestník pro správu dat.
+    """
     return render_template("data_management.html", active_tab="data_management")
 
 

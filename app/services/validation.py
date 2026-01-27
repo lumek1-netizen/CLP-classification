@@ -220,7 +220,7 @@ def _get_expected_h_from_ate(ate_value: float, route: str) -> Optional[str]:
     
     Args:
         ate_value: ATE hodnota
-        route: Cesta expozice ('oral', 'dermal', 'inhalation')
+        route: Cesta expozice ('oral', 'dermal'). Poznámka: 'inhalation' zatím není implementováno.
         
     Returns:
         H-věta nebo None

@@ -17,8 +17,8 @@ def import_substances_from_csv(file, user_id=None) -> Dict[str, Any]:
     Importuje látky z CSV souboru.
     
     Args:
-        file: File stream z request.files
-        user_id: ID uživatele (pro audit log)
+        file: Stream souboru (z objektu request.files)
+        user_id: ID uživatele (pro účely auditního logu)
         
     Returns:
         {

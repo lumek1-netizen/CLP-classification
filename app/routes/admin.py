@@ -1,3 +1,9 @@
+"""
+Administrační rozhraní.
+
+Obsahuje endpointy pro správu uživatelů, rolí a prohlížení audit logu.
+Práva jsou omezena pouze pro roli 'admin'.
+"""
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.models.user import User
@@ -13,6 +19,9 @@ admin_bp = Blueprint("admin", __name__)
 @login_required
 @admin_required
 def users():
+    """
+    Správa uživatelů (seznam, vytvoření, mazání, změna role).
+    """
     users = User.query.all()
     roles = Role.query.all()
     form = UserCreateForm()

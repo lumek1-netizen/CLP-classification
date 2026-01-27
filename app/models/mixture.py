@@ -1,3 +1,9 @@
+"""
+Model chemické směsi (Mixture).
+
+Definuje strukturu směsi, která se skládá z komponent (látek nebo jiných směsí).
+Uchovává také výsledky klasifikace.
+"""
 from app.extensions import db
 from app.constants.clp import PhysicalState, UserType
 
@@ -28,17 +34,17 @@ class Mixture(db.Model):
     final_signal_word = db.Column(db.String(50), nullable=True)
     classification_log = db.Column(db.JSON, nullable=True)
     
-    # New fields for CLP improvements
+    # Nová pole pro vylepšení CLP
     ph = db.Column(db.Float, nullable=True)
     unknown_env_toxicity_percent = db.Column(db.Float, nullable=True)
 
-    # Physical properties
+    # Fyzikální vlastnosti
     physical_state = db.Column(db.Enum(PhysicalState), default=PhysicalState.LIQUID, nullable=False)
     flash_point = db.Column(db.Float, nullable=True)
     boiling_point = db.Column(db.Float, nullable=True)
     can_generate_mist = db.Column(db.Boolean, default=False, nullable=False)
     
-    # User type for P-phrase filtering
+    # Typ uživatele pro filtrování P-vět
     user_type = db.Column(db.Enum(UserType), default=UserType.PROFESSIONAL, nullable=True)
 
     components = db.relationship(

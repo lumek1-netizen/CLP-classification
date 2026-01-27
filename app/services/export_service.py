@@ -1,6 +1,7 @@
-# app/services/export_service.py
 """
-Export service pro exportování látek do CSV.
+Služba pro export dat.
+
+Zajišťuje generování CSV souborů s exportem databáze látek a vytváření šablon pro import.
 """
 
 import csv

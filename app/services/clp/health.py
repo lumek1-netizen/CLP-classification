@@ -1,3 +1,16 @@
+"""
+Modul pro klasifikaci nebezpečnosti pro zdraví.
+
+Implementuje logiku pro klasifikaci zdravotních rizik (Health Hazards) podle nařízení CLP.
+Zahrnuje vyhodnocení:
+- Akutní toxicity (mimo ATEmix)
+- Žíravosti/dráždivosti pro kůži a oči
+- Senzibilizace, Mutagenity, Karcinogenity, Toxicity pro reprodukci (CMR)
+- STOT SE a RE
+- Nebezpečnosti při vdechnutí
+- Endokrinní disrupce pro zdraví (ED HH)
+"""
+
 from typing import Dict, List, Tuple, Set, Any, Optional
 from app.models import Mixture
 from app.constants.clp import (
@@ -181,7 +194,15 @@ class HealthHazardClassifier:
                 # Přičtení (aditivní vs neaditivní)
                 is_additive = group in ["Skin", "Eye", "Aquatic"] or h_code in ["H335", "H336"]
                 if is_additive:
-                    sum_cat = "STOT SE 3" if target_cat.startswith("STOT SE 3") else target_cat
+                    # PRO STOT SE 3 (H335 a H336) NEPOUŽÍVÁME "STOT SE 3" jako sumární klíč,
+                    # ale zachováváme jejich specifické target_cat ("STOT SE 3" pro H335 a "STOT SE 3 (Narcotic)" pro H336)
+                    # aby se nesčítaly dohromady.
+                    sum_cat = target_cat 
+                    if target_cat.startswith("STOT SE 3") and h_code == "H335":
+                         sum_cat = "STOT SE 3" # Pro jistotu, H335 mapuje na STOT SE 3
+                    elif target_cat.startswith("STOT SE 3") and h_code == "H336":
+                         sum_cat = "STOT SE 3 (Narcotic)"
+
                     self._add_contribution(sum_cat, conc * weight, name, note)
                 elif conc >= standard_limit and not scl_limit_val:
                     # Neaditivní bez SCL, překročilo standardní limit
@@ -248,9 +269,34 @@ class HealthHazardClassifier:
         if s1 >= SKIN_CORROSION_THRESHOLD_PERCENT or self.hazard_totals.get("Skin Corr. 1", {}).get("forced_by_scl"):
             self.health_hazards.add("H314")
             self.health_ghs.add("GHS05")
-        elif (SKIN_CORROSION_WEIGHT_MULTIPLIER * s1 + s2) >= SKIN_IRRITATION_THRESHOLD_PERCENT:
+            self.log_entries.append({
+                "step": "Skin Corr. 1",
+                "detail": f"Sum Skin Corr. 1 = {s1:.2f}% >= {SKIN_CORROSION_THRESHOLD_PERCENT}% (nebo SCL)",
+                "result": "H314"
+            })
+        else:
+            self.log_entries.append({
+                "step": "Skin Corr. 1",
+                "detail": f"Sum Skin Corr. 1 = {s1:.2f}% < {SKIN_CORROSION_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
+
+        if (SKIN_CORROSION_WEIGHT_MULTIPLIER * s1 + s2) >= SKIN_IRRITATION_THRESHOLD_PERCENT:
             self.health_hazards.add("H315")
             self.health_ghs.add("GHS07")
+            val = SKIN_CORROSION_WEIGHT_MULTIPLIER * s1 + s2
+            self.log_entries.append({
+                "step": "Skin Irrit. 2",
+                "detail": f"Sum (10x Skin Corr. 1 + Skin Irrit. 2) = {val:.2f}% >= {SKIN_IRRITATION_THRESHOLD_PERCENT}%",
+                "result": "H315"
+            })
+        elif "H314" not in self.health_hazards:
+            val = SKIN_CORROSION_WEIGHT_MULTIPLIER * s1 + s2
+            self.log_entries.append({
+                "step": "Skin Irrit. 2",
+                "detail": f"Sum (10x Skin Corr. 1 + Skin Irrit. 2) = {val:.2f}% < {SKIN_IRRITATION_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
 
         # Eye Dam/Irrit (včetně příspěvku od Skin Corr)
         e1 = self.hazard_totals.get("Eye Dam. 1", {}).get("total", 0.0) + s1
@@ -259,25 +305,87 @@ class HealthHazardClassifier:
         if e1 >= EYE_DAMAGE_THRESHOLD_PERCENT or self.hazard_totals.get("Eye Dam. 1", {}).get("forced_by_scl"):
             self.health_hazards.add("H318")
             self.health_ghs.add("GHS05")
-        elif (EYE_DAMAGE_WEIGHT_MULTIPLIER * e1 + e2) >= EYE_IRRITATION_THRESHOLD_PERCENT:
+            self.log_entries.append({
+                "step": "Eye Dam. 1",
+                "detail": f"Sum (Eye Dam. 1 + Skin Corr. 1) = {e1:.2f}% >= {EYE_DAMAGE_THRESHOLD_PERCENT}% (nebo SCL)",
+                "result": "H318"
+            })
+        else:
+            self.log_entries.append({
+                "step": "Eye Dam. 1",
+                "detail": f"Sum (Eye Dam. 1 + Skin Corr. 1) = {e1:.2f}% < {EYE_DAMAGE_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
+
+        if (EYE_DAMAGE_WEIGHT_MULTIPLIER * e1 + e2) >= EYE_IRRITATION_THRESHOLD_PERCENT:
             self.health_hazards.add("H319")
             self.health_ghs.add("GHS07")
+            val = EYE_DAMAGE_WEIGHT_MULTIPLIER * e1 + e2
+            self.log_entries.append({
+                "step": "Eye Irrit. 2",
+                "detail": f"Sum (10x Eye Dam. 1 + Eye Irrit. 2) = {val:.2f}% >= {EYE_IRRITATION_THRESHOLD_PERCENT}%",
+                "result": "H319"
+            })
+        elif "H318" not in self.health_hazards:
+            val = EYE_DAMAGE_WEIGHT_MULTIPLIER * e1 + e2
+            self.log_entries.append({
+                "step": "Eye Irrit. 2",
+                "detail": f"Sum (10x Eye Dam. 1 + Eye Irrit. 2) = {val:.2f}% < {EYE_IRRITATION_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
 
     def _evaluate_stot_se3(self) -> None:
-        """Vyhodnotí STOT SE 3 příspěvky."""
-        data = self.hazard_totals.get("STOT SE 3", {})
-        if data.get("total", 0.0) >= STOT_SE3_THRESHOLD_PERCENT or data.get("forced_by_scl"):
-            contribs = data.get("contributors", [])
-            if any("H335" in c or "STOT SE 3" in c for c in contribs): self.health_hazards.add("H335")
-            if any("H336" in c or "Narcotic" in c for c in contribs): self.health_hazards.add("H336")
-            if self.health_hazards.intersection({"H335", "H336"}): self.health_ghs.add("GHS07")
+        """Vyhodnotí STOT SE 3 příspěvky (H335 a H336 odděleně)."""
+        # 1. H335 - Respiratory Irritation (uloženo pod "STOT SE 3")
+        irr_data = self.hazard_totals.get("STOT SE 3", {})
+        if irr_data.get("total", 0.0) >= STOT_SE3_THRESHOLD_PERCENT or irr_data.get("forced_by_scl"):
+            self.health_hazards.add("H335")
+            self.health_ghs.add("GHS07")
+            self.log_entries.append({
+                "step": "STOT SE 3 (Resp.)",
+                "detail": f"Sum = {irr_data.get('total', 0.0):.2f}% >= {STOT_SE3_THRESHOLD_PERCENT}%",
+                "result": "H335"
+            })
+        elif irr_data.get("total", 0.0) > 0:
+            self.log_entries.append({
+                "step": "STOT SE 3 (Resp.)",
+                "detail": f"Sum = {irr_data.get('total', 0.0):.2f}% < {STOT_SE3_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
+
+        # 2. H336 - Narcotic Effects (uloženo pod "STOT SE 3 (Narcotic)")
+        narc_data = self.hazard_totals.get("STOT SE 3 (Narcotic)", {})
+        if narc_data.get("total", 0.0) >= STOT_SE3_THRESHOLD_PERCENT or narc_data.get("forced_by_scl"):
+            self.health_hazards.add("H336")
+            self.health_ghs.add("GHS07")
+            self.log_entries.append({
+                "step": "STOT SE 3 (Narc.)",
+                "detail": f"Sum = {narc_data.get('total', 0.0):.2f}% >= {STOT_SE3_THRESHOLD_PERCENT}%",
+                "result": "H336"
+            })
+        elif narc_data.get("total", 0.0) > 0:
+             self.log_entries.append({
+                "step": "STOT SE 3 (Narc.)",
+                "detail": f"Sum = {narc_data.get('total', 0.0):.2f}% < {STOT_SE3_THRESHOLD_PERCENT}%",
+                "result": "Neklasifikováno"
+            })
 
     def _evaluate_aspiration_hazard(self) -> None:
         """Vyhodnotí nebezpečnost při vdechnutí (H304)."""
-        if any(c.substance.health_h_phrases and "H304" in c.substance.health_h_phrases 
-               and c.concentration >= ASPIRATION_HAZARD_THRESHOLD_PERCENT 
-               for c in self.components):
+        # Suma koncentrací všech látek klasifikovaných jako H304
+        h304_total = sum(
+            c.concentration for c in self.components
+            if c.substance.health_h_phrases and "H304" in c.substance.health_h_phrases
+        )
+        
+        if h304_total >= ASPIRATION_HAZARD_THRESHOLD_PERCENT:
             self.health_hazards.add("H304")
+            self.health_ghs.add("GHS08")
+            self.log_entries.append({
+                "step": "Aspiration Hazard",
+                "detail": f"Suma H304 = {h304_total:.2f}% (Limit {ASPIRATION_HAZARD_THRESHOLD_PERCENT}%)",
+                "result": "H304 (Asp. Tox. 1)"
+            })
 
     def _evaluate_acute_toxicity_hazards(self) -> None:
         """Zpracuje kategorie Akutní toxicity (mimo ATEmix)."""
@@ -293,16 +401,40 @@ class HealthHazardClassifier:
             if self.hazard_totals.get(cat, {}).get("total", 0.0) > 0:
                 self.health_hazards.add(h_code)
                 self.health_ghs.add(ghs)
+                # Logujeme pouze jako info, protože hlavní je ATE
+                # Ale pokud to z nějakého důvodu (např. GCL/SCL na komponentě) projde,
+                # chceme to vidět. Pozn: Toto většinou nenastane pro sumační metodu,
+                # protože Acute Tox se počítá přes ATE. Ale kdyby...
+                self.log_entries.append({
+                    "step": f"Acute Tox ({cat})",
+                    "detail": f"Detekována složka s {cat} (nespočítáno přes ATE?)",
+                    "result": h_code
+                })
 
     def _evaluate_generic_hazards(self) -> None:
         """Vyhodnotí neaditivní hazardy (CMR, STOT RE, atd.)."""
+        # Tyto kategorie jsou řešeny vlastními metodami s aditivním přístupem
+        # a nesmí být vyhodnoceny zde, protože hazard_totals obsahuje i podlimitní množství.
+        excluded_prefixes = ("Skin", "Eye", "Aquatic", "STOT SE 3")
+        
         for cat, data in self.hazard_totals.items():
+            if cat.startswith(excluded_prefixes):
+                continue
+
             if data["total"] > 0:
                 h_code = SCL_HAZARD_TO_H_CODE.get(cat)
                 if h_code and h_code not in self.health_hazards:
                     self.health_hazards.add(h_code)
                     ghs = SCL_HAZARD_TO_GHS_CODE.get(cat)
                     if ghs: self.health_ghs.add(ghs)
+                    
+                    contributors = self.hazard_totals[cat].get("contributors", [])
+                    contrib_str = ", ".join(contributors)
+                    self.log_entries.append({
+                        "step": f"Hazard {cat}",
+                        "detail": f"Obsahuje: {contrib_str}",
+                        "result": h_code
+                    })
 
     def _evaluate_modern_hazards(self) -> None:
         """Zpracuje Lactation a Endocrine Disruption (ED)."""
@@ -311,13 +443,28 @@ class HealthHazardClassifier:
                       if c.substance.health_h_phrases and "H362" in c.substance.health_h_phrases)
         if l_total >= LACTATION_THRESHOLD_PERCENT:
             self.health_hazards.add("H362")
+            self.log_entries.append({
+                "step": "Lactation (H362)",
+                "detail": f"Sum = {l_total:.2f}% >= {LACTATION_THRESHOLD_PERCENT}%",
+                "result": "H362"
+            })
         
         # ED HH (pomocí EUH vět)
         for c in self.components:
             if c.substance.ed_hh_cat == 1 and c.concentration >= ED_HH_CATEGORY_1_THRESHOLD_PERCENT:
                 self.health_hazards.add("EUH430")
+                self.log_entries.append({
+                    "step": "Endocrine Disruptor HH 1",
+                    "detail": f"{c.substance.name} >= {ED_HH_CATEGORY_1_THRESHOLD_PERCENT}%",
+                    "result": "EUH430"
+                })
             elif c.substance.ed_hh_cat == 2 and c.concentration >= ED_HH_CATEGORY_2_THRESHOLD_PERCENT:
                 self.health_hazards.add("EUH431")
+                self.log_entries.append({
+                    "step": "Endocrine Disruptor HH 2",
+                    "detail": f"{c.substance.name} >= {ED_HH_CATEGORY_2_THRESHOLD_PERCENT}%",
+                    "result": "EUH431"
+                })
 
 
 def classify_by_concentration_limits(mixture: Mixture, components: Optional[List] = None):

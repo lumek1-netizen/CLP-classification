@@ -1,3 +1,9 @@
+"""
+Model vazební tabulky pro složky směsi.
+
+Definuje vazbu M:N (resp. 1:N s atributy) mezi směsí a jejími komponentami.
+Komponentou může být Látka nebo jiná Směs.
+"""
 import enum
 from sqlalchemy.orm import validates
 from app.extensions import db
@@ -10,6 +16,10 @@ class ComponentType(enum.Enum):
 
 
 class MixtureComponent(db.Model):
+    """
+    Reprezentuje jednu složku směsi včetně její koncentrace.
+    Složkou může být buď Substance nebo jiná Mixture (sub-směs).
+    """
     __tablename__ = "mixture_component"
     id = db.Column(db.Integer, primary_key=True)
     mixture_id = db.Column(db.Integer, db.ForeignKey("mixture.id"), nullable=False)

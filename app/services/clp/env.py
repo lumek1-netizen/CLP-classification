@@ -1,3 +1,14 @@
+"""
+Modul pro klasifikaci nebezpečnosti pro životní prostředí.
+
+Implementuje logiku pro klasifikaci environmentálních rizik (Environmental Hazards) podle nařízení CLP.
+Zahrnuje vyhodnocení:
+- Nebezpečnosti pro vodní prostředí (Acute, Chronic)
+- Nebezpečnosti pro ozonovou vrstvu
+- Endokrinní disrupce pro životní prostředí (ED ENV)
+- Vlastností PBT, vPvB, PMT, vPvM
+"""
+
 from typing import Dict, List, Tuple, Set, Any, Optional
 from app.models import Mixture
 from .scl import parse_scls, evaluate_scl_condition
@@ -80,7 +91,7 @@ class EnvironmentalHazardClassifier:
             if substance.id not in self.processed_substances:
                 self._process_h_phrase_hazards(substance, conc)
             elif substance.env_h_phrases:
-                self._log_skip_h_phrases(sub_name)
+                self._log_skip_h_phrases(substance)
 
             # 3. Speciální třídy 2026 a neznámá toxicita
             self._track_modern_classes(substance, conc)
@@ -297,8 +308,19 @@ class EnvironmentalHazardClassifier:
                     "result": f"CAT {cat}"
                 })
 
-    def _log_skip_h_phrases(self, name: str) -> None:
-        self.log_entries.append({"step": "Skip H-phrases", "detail": f"{name}: Data o testech mají přednost.", "result": "SKIP"})
+    def _log_skip_h_phrases(self, substance) -> None:
+        details = []
+        if substance.lc50_fish_96h: details.append(f"LC50(fish)={substance.lc50_fish_96h}")
+        if substance.ec50_daphnia_48h: details.append(f"EC50(daph)={substance.ec50_daphnia_48h}")
+        if substance.ec50_algae_72h: details.append(f"EC50(algae)={substance.ec50_algae_72h}")
+        if substance.noec_chronic: details.append(f"NOEC={substance.noec_chronic}")
+        
+        data_str = ", ".join(details)
+        self.log_entries.append({
+            "step": "Skip H-phrases",
+            "detail": f"{substance.name}: Priorita testů ({data_str})",
+            "result": "SKIP (použita data)"
+        })
 
     def _log_scl_hit(self, cat, name, conc) -> None:
         self.log_entries.append({"step": f"{cat} (SCL)", "detail": f"Mez pro {name} splněna ({conc}%)", "result": "SCL OK"})

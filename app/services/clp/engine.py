@@ -1,3 +1,11 @@
+"""
+Hlavní výpočetní engine pro CLP klasifikaci.
+
+Tento modul orchestrace celý proces klasifikace směsi.
+Volá dílčí kalkulátory (ATE, Health, Env, Physical) a agreguje výsledky.
+Implementuje také prioritní pravidla pro označování (Článek 26).
+"""
+
 from typing import Tuple, Set, List, Optional
 import json
 from app.models import Mixture

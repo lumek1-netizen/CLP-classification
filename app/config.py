@@ -117,6 +117,9 @@ config_map = {
 
 def get_config(config_name=None):
     """Vrátí konfigurační třídu podle jména prostředí."""
+    if config_name is not None and not isinstance(config_name, str):
+        return config_name
+        
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
     

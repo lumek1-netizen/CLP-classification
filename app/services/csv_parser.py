@@ -1,6 +1,8 @@
-# app/services/csv_parser.py
 """
-CSV parser pro import látek do CLP Calculator.
+CSV parser pro import látek.
+
+Tento modul zajišťuje načítání a validaci dat z CSV souborů pro hromadný import látek.
+Obsahuje funkce pro validaci CAS čísel, H-vět, GHS kódů a převod datových typů.
 """
 
 import csv

@@ -1,3 +1,9 @@
+"""
+Správa chemických látek (Substances).
+
+Endpointy pro seznam, vytvoření, editaci a smazání látek.
+Obsahuje také integraci s ECHA API pro vyhledávání dat.
+"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.utils.security import editor_required

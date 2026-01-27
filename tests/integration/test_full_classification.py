@@ -23,7 +23,10 @@ def test_substance_creation_and_validation(auth_client, app):
             "ate_inhalation_dusts_mists": 0,
             "ate_inhalation_gases": 0,
             "m_factor_acute": 1,
+            "m_factor_acute": 1,
             "m_factor_chronic": 1,
+            "ed_hh_cat": 0,
+            "ed_env_cat": 0,
         },
         follow_redirects=True,
     )

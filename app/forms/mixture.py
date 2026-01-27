@@ -1,12 +1,21 @@
+"""
+Formuláře pro správu směsí.
+"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, BooleanField
 from app.constants.clp import PhysicalState, UserType
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
+from .fields import FlexibleFloatField
 
 
 class MixtureForm(FlaskForm):
+    """
+    Formulář pro vytvoření nebo editaci směsi.
+    Definuje základní vlastnosti směsi (název, pH, fyz. stav) a limity.
+    Komponenty jsou zpracovány dynamicky mimo tento formulář.
+    """
     name = StringField("Název směsi", validators=[DataRequired(), Length(max=100)])
-    ph = FloatField(
+    ph = FlexibleFloatField(
         "pH (volitelné)",
         validators=[
             Optional(),

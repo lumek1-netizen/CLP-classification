@@ -1,9 +1,17 @@
+"""
+Model uživatele.
+
+Definuje uživatele, autentizaci a oprávnění.
+"""
 from app.extensions import db
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class User(UserMixin, db.Model):
+    """
+    Model uživatele s podporou Flask-Login.
+    """
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)

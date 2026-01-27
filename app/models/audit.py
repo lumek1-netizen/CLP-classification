@@ -1,7 +1,16 @@
+"""
+Model auditního logu.
+
+Uchovává historii změn pro entity v systému (Látky, Směsi).
+"""
 from app.extensions import db
 from datetime import datetime
 
 class AuditLog(db.Model):
+    """
+    Model reprezentující záznam v auditním logu.
+    Ukládá kdo, co, kdy a jak změnil.
+    """
     __tablename__ = "audit_log"
 
     id = db.Column(db.Integer, primary_key=True)

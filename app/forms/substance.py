@@ -1,16 +1,28 @@
+"""
+Formuláře pro správu látek.
+"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, FloatField, IntegerField, HiddenField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Length, Optional, NumberRange
 
 
 def empty_to_none(value):
-    """Převede prázdné stringy na None pro správnou validaci Optional polí."""
+    """
+    Filtr: Převede prázdné stringy na None.
+    Důležité pro správnou funkčnost Optional validátorů u číselných polí.
+    """
     if value == '' or value is None:
         return None
     return value
 
 
+from .fields import FlexibleFloatField
+
 class SubstanceForm(FlaskForm):
+    """
+    Formulář pro vytvoření nebo editaci chemické látky (Substance).
+    Obsahuje pole pro identifikaci, klasifikaci, ATE limity, ekotoxicitu a nové hazardy.
+    """
     name = StringField("Název látky", validators=[DataRequired(), Length(max=100)])
     cas_number = StringField("CAS číslo", validators=[Optional(), Length(max=20)])
     ghs_codes = StringField(
@@ -35,7 +47,7 @@ class SubstanceForm(FlaskForm):
     ate_inhalation_gases = FloatField(
         "ATE inhalační - plyny (ppm)", validators=[Optional(), NumberRange(min=0)], filters=[empty_to_none]
     )
-    molecular_weight = FloatField(
+    molecular_weight = FlexibleFloatField(
         "Molekulová hmotnost (g/mol)", validators=[Optional(), NumberRange(min=0.01)], filters=[empty_to_none]
     )
 

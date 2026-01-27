@@ -1,3 +1,9 @@
+"""
+Modul pro práci se Specifickými koncentračními limity (SCL).
+
+Obsahuje parser pro SCL řetězce z databáze a vyhodnocovací logiku podmínek.
+"""
+
 from typing import Dict, List, Any, Optional
 import re
 from app.constants.clp import SCL_HAZARD_TO_H_CODE, SCL_HAZARD_TO_GHS_CODE

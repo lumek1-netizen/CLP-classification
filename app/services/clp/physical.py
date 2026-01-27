@@ -1,3 +1,9 @@
+"""
+Modul pro klasifikaci fyzikální nebezpečnosti.
+
+Zatím implementuje pouze klasifikaci hořlavých kapalin (Flammable Liquids).
+"""
+
 from typing import List, Dict, Tuple, Optional
 from app.constants.clp import PhysicalState
 
@@ -5,8 +11,10 @@ def evaluate_flammable_liquids(
     flash_point: Optional[float], boiling_point: Optional[float]
 ) -> Tuple[set, set, List[Dict[str, str]]]:
     """
-    Evaluates Flammable Liquids (H224, H225, H226) based on Flash Point and Boiling Point.
-    Returns: (hazards, ghs_codes, log_entries)
+    Vyhodnotí hořlavé kapaliny (H224, H225, H226) na základě bodu vzplanutí a bodu varu.
+    
+    Returns:
+        (hazards, ghs_codes, log_entries)
     """
     hazards = set()
     ghs_codes = set()

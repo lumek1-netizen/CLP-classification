@@ -1,3 +1,10 @@
+"""
+Služba pro auditování změn v databázi.
+
+Tento modul zajišťuje logování změn (vytvoření, úprava, smazání) u klíčových entit 
+(Látky, Směsi) do auditního logu. Využívá SQLAlchemy event listenery.
+"""
+
 from flask_login import current_user
 from app.models.audit import AuditLog
 from app.extensions import db
@@ -6,10 +13,18 @@ from datetime import datetime
 import json
 
 class AuditService:
+    """Hlavní třída pro vytváření záznamů v audit logu."""
+
     @staticmethod
     def log_change(entity, action, changes=None, connection=None):
         """
-        Vytvoří záznam do audit logu.
+        Vytvoří a uloží záznam do audit logu.
+        
+        Args:
+            entity: Instance modelu (Substance/Mixture).
+            action: Typ akce (CREATE, UPDATE, DELETE).
+            changes: Slovník změn (pro UPDATE/CREATE).
+            connection: SQLAlchemy Connection (pro použití v event listeneru).
         """
         from app.models.substance import Substance
         from app.models.mixture import Mixture

@@ -1,18 +1,26 @@
-# app/constants/clp.py
-# --- Převodní Tabulky ATE (Dle Přílohy I, Tabulka 3.1.2 CLP) ---
+"""
+Konstanta a definice pro nařízení CLP.
+
+Tento modul obsahuje mapování H-vět, limity ATE a definice fyzikálních stavů.
+Zdroj: Nařízení (ES) č. 1272/2008 (CLP).
+"""
+
 from enum import Enum
 
 class PhysicalState(str, Enum):
+    """Fyzikální stavy látek."""
     LIQUID = "liquid"
     SOLID = "solid"
     GAS = "gas"
     AEROSOL = "aerosol"
 
 class UserType(str, Enum):
+    """Typ uživatele pro účely klasifikace (Consumer/Profi)."""
     CONSUMER = "consumer"
     PROFESSIONAL = "professional"
     INDUSTRIAL = "industrial"
 
+# Limity ATE pro přepočet (Tabulka 3.1.2)
 ATE_LIMITS = {
     "oral": [5, 50, 300, 2000],
     "dermal": [50, 200, 1000, 2000],
@@ -127,40 +135,40 @@ HEALTH_H_PHRASES = {
     "H300": "Smrtelný při požití (AT Kat. 1/2)",
     "H301": "Toxický při požití (AT Kat. 3)",
     "H302": "Zdraví škodlivý při požití (AT Kat. 4)",
+    "H304": "Při požití a vniknutí do dýchacích cest může způsobit smrt (Asp. Tox. 1)",
     "H310": "Smrtelný při styku s kůží (AT Kat. 1/2)",
     "H311": "Toxický při styku s kůží (AT Kat. 3)",
     "H312": "Zdraví škodlivý při styku s kůží (AT Kat. 4)",
+    "H314": "Způsobuje těžké poleptání kůže a poškození očí (Skin Corr. 1A/B/C)",
+    "H315": "Dráždí kůži (Skin Irrit. 2)",
+    "H317": "Může vyvolat alergickou kožní reakci (Skin Sens. 1)",
+    "H318": "Způsobuje vážné poškození očí (Eye Dam. 1)",
+    "H319": "Způsobuje vážné podráždění očí (Eye Irrit. 2)",
     "H330": "Smrtelný při vdechování (AT Kat. 1/2)",
     "H331": "Toxický při vdechování (AT Kat. 3)",
     "H332": "Zdraví škodlivý při vdechování (AT Kat. 4)",
-    "H314": "Způsobuje těžké poleptání kůže a poškození očí (Skin Corr. 1A/B/C)",
-    "H315": "Dráždí kůži (Skin Irrit. 2)",
-    "H318": "Způsobuje vážné poškození očí (Eye Dam. 1)",
-    "H319": "Způsobuje vážné podráždění očí (Eye Irrit. 2)",
-    "H317": "Může vyvolat alergickou kožní reakci (Skin Sens. 1)",
     "H334": "Může vyvolat příznaky alergie nebo astmatu nebo dýchací potíže (Resp. Sens. 1)",
-    "H340": "Může vyvolat genetické poškození (Muta. 1A/1B)",
-    "H350": "Může vyvolat rakovinu (Carc. 1A/1B)",
-    "H360": "Může poškodit reprodukční schopnost nebo plod v těle matky (Repr. 1A/1B)",
-    "H360F": "Může poškodit reprodukční schopnost (Repr. 1A/1B)",
-    "H360D": "Může poškodit plod v těle matky (Repr. 1A/1B)",
-    "H360FD": "Může poškodit reprodukční schopnost. Může poškodit plod v těle matky (Repr. 1A/1B)",
-    "H360Fd": "Může poškodit reprodukční schopnost. Podezření na poškození plodu v těle matky (Repr. 1A/1B)",
-    "H360Df": "Může poškodit plod v těle matky. Podezření na poškození reprodukční schopnosti (Repr. 1A/1B)",
-    "H370": "Způsobuje poškození orgánů (STOT SE 1)",
-    "H372": "Způsobuje poškození orgánů při prodloužené nebo opakované expozici (STOT RE 1)",
-    "H341": "Podezření na genetické poškození (Muta. 2)",
-    "H351": "Podezření na vyvolání rakoviny (Carc. 2)",
-    "H361": "Podezření na poškození reprodukční schopnosti nebo plodu v těle matky (Repr. 2)",
-    "H361f": "Podezření na poškození reprodukční schopnosti (Repr. 2)",
-    "H361d": "Podezření na poškození plodu v těle matky (Repr. 2)",
-    "H361fd": "Podezření na poškození reprodukční schopnosti. Podezření na poškození plodu v těle matky (Repr. 2)",
-    "H371": "Může způsobit poškození orgánů (STOT SE 2)",
-    "H373": "Může způsobit poškození orgánů při prodloužené expozici (STOT RE 2)",
     "H335": "Může způsobit podráždění dýchacích cest (STOT SE 3)",
     "H336": "Může způsobit ospalost nebo závratě (STOT SE 3)",
-    "H304": "Při požití a vniknutí do dýchacích cest může způsobit smrt (Asp. Tox. 1)",
+    "H340": "Může vyvolat genetické poškození (Muta. 1A/1B)",
+    "H341": "Podezření na genetické poškození (Muta. 2)",
+    "H350": "Může vyvolat rakovinu (Carc. 1A/1B)",
+    "H351": "Podezření na vyvolání rakoviny (Carc. 2)",
+    "H360": "Může poškodit reprodukční schopnost nebo plod v těle matky (Repr. 1A/1B)",
+    "H360D": "Může poškodit plod v těle matky (Repr. 1A/1B)",
+    "H360Df": "Může poškodit plod v těle matky. Podezření na poškození reprodukční schopnosti (Repr. 1A/1B)",
+    "H360F": "Může poškodit reprodukční schopnost (Repr. 1A/1B)",
+    "H360FD": "Může poškodit reprodukční schopnost. Může poškodit plod v těle matky (Repr. 1A/1B)",
+    "H360Fd": "Může poškodit reprodukční schopnost. Podezření na poškození plodu v těle matky (Repr. 1A/1B)",
+    "H361": "Podezření na poškození reprodukční schopnosti nebo plodu v těle matky (Repr. 2)",
+    "H361d": "Podezření na poškození plodu v těle matky (Repr. 2)",
+    "H361f": "Podezření na poškození reprodukční schopnosti (Repr. 2)",
+    "H361fd": "Podezření na poškození reprodukční schopnosti. Podezření na poškození plodu v těle matky (Repr. 2)",
     "H362": "Může poškodit kojence prostřednictvím mateřského mléka (Lact.)",
+    "H370": "Způsobuje poškození orgánů (STOT SE 1)",
+    "H371": "Může způsobit poškození orgánů (STOT SE 2)",
+    "H372": "Způsobuje poškození orgánů při prodloužené nebo opakované expozici (STOT RE 1)",
+    "H373": "Může způsobit poškození orgánů při prodloužené expozici (STOT RE 2)",
 }
 
 ENV_H_PHRASES = {

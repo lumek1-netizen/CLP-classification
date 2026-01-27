@@ -56,7 +56,7 @@ P_PHRASES_TEXT = {
     "P403": "Skladujte na dobře větraném místě.",
     "P405": "Skladujte uzamčené.",
     
-    # Missing Fire/Storage P-phrases (Fyzikální nebezpečnost)
+    # Chybějící P-věty pro požár/skladování (Fyzikální nebezpečnost)
     "P370": "V případě požáru:",
     "P371": "V případě velkého požáru a velkého množství:",
     "P372": "Nebezpečí výbuchu při požáru.",

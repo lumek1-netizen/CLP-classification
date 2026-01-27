@@ -1,3 +1,8 @@
+"""
+Pomocné funkce pro zabezpečení a řízení přístupu.
+
+Obsahuje dekorátory pro kontrolu rolí uživatelů.
+"""
 from functools import wraps
 from flask import abort
 from flask_login import current_user

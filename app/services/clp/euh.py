@@ -1,6 +1,14 @@
+"""
+Modul pro klasifikaci doplňkových informací o nebezpečnosti (EUH věty).
+
+Implementuje pravidla pro přiřazení EUH vět, jako jsou:
+- EUH208 (Obsahuje senzibilizující látky)
+- EUH210 (Na vyžádání je k dispozici bezpečnostní list)
+- Nové EUH věty pro ED a PBT/PMT (2026)
+"""
+
 from typing import Set, List, Dict, Tuple, Optional
 from app.models import Mixture
-from app.constants.clp import EUH_PHRASES
 
 def classify_euh_phrases(mixture: Mixture, health_hazards: Set[str], env_hazards: Set[str], components: Optional[List] = None) -> Tuple[Set[str], List[Dict[str, str]]]:
     """
