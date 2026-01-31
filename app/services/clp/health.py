@@ -415,7 +415,7 @@ class HealthHazardClassifier:
         """Vyhodnotí neaditivní hazardy (CMR, STOT RE, atd.)."""
         # Tyto kategorie jsou řešeny vlastními metodami s aditivním přístupem
         # a nesmí být vyhodnoceny zde, protože hazard_totals obsahuje i podlimitní množství.
-        excluded_prefixes = ("Skin", "Eye", "Aquatic", "STOT SE 3")
+        excluded_prefixes = ("Skin Corr.", "Skin Irrit.", "Eye", "Aquatic", "STOT SE 3")
         
         for cat, data in self.hazard_totals.items():
             if cat.startswith(excluded_prefixes):
